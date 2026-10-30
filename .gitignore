@@ -16,6 +16,9 @@ coverage/
 # Local copy of the requirements document
 requisitos.pdf
 
+# Exported Claude Code session
+claude-session.txt
+
 # Logs
 *.log
 npm-debug.log*
