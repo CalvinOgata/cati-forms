@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.svelte-kit/
+coverage/
+*.tsbuildinfo
+
+# Env (keep the examples)
+.env
+.env.*
+!.env.example
+
+# Local copy of the requirements document
+requisitos.pdf
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/

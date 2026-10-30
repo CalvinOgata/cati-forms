@@ -1,0 +1,29 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Backend follows the NestJS defaults (2 spaces).
+[backend/**]
+indent_style = space
+indent_size = 2
+
+# Frontend follows the SvelteKit defaults (tabs).
+[frontend/**]
+indent_style = tab
+
+[{Makefile,*.mk}]
+indent_style = tab
+
+[*.{json,yml,yaml,md}]
+indent_style = space
+indent_size = 2
+
+[frontend/**.json]
+indent_style = tab
+
+[*.md]
+trim_trailing_whitespace = false
