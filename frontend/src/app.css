@@ -6,6 +6,7 @@
 	--border: #d6d9de;
 	--accent: #1d4ed8;
 	--accent-text: #ffffff;
+	--accent-soft: #e8eefc;
 	--error-bg: #fdecec;
 	--error-text: #a61b1b;
 	--ok: #15803d;
@@ -21,6 +22,7 @@
 		--border: #343a42;
 		--accent: #5b8cff;
 		--accent-text: #0b0d10;
+		--accent-soft: #1f2a44;
 		--error-bg: #3a1a1a;
 		--error-text: #ffb4b4;
 		--ok: #4ade80;
@@ -70,7 +72,11 @@ label {
 	font-weight: 500;
 }
 
-input {
+input:not([type='checkbox'], [type='radio']),
+textarea,
+select {
+	/* Fields have a default width; without this they don't shrink on narrow screens. */
+	min-width: 0;
 	padding: 0.6rem 0.75rem;
 	font: inherit;
 	color: inherit;
@@ -79,12 +85,26 @@ input {
 	border-radius: 8px;
 }
 
-input:focus {
+textarea {
+	resize: vertical;
+	min-height: 4.5rem;
+	/* Grows with the text where supported. */
+	field-sizing: content;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
 	outline: 2px solid var(--accent);
 	outline-offset: 1px;
 }
 
-button {
+button,
+.button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
 	padding: 0.65rem 1rem;
 	font: inherit;
 	font-weight: 600;
@@ -92,12 +112,101 @@ button {
 	background: var(--accent);
 	border: none;
 	border-radius: 8px;
+	text-decoration: none;
 	cursor: pointer;
 }
 
 button:disabled {
 	opacity: 0.6;
-	cursor: progress;
+	cursor: default;
+}
+
+/* Outlined button for secondary actions. */
+.secondary {
+	color: var(--accent);
+	background: var(--surface);
+	border: 1px solid var(--border);
+}
+
+/* Borderless button, mostly for icons. */
+.ghost {
+	color: var(--muted);
+	background: transparent;
+}
+
+.secondary:hover:not(:disabled),
+.ghost:hover:not(:disabled) {
+	background: var(--accent-soft);
+}
+
+.icon {
+	padding: 0.45rem;
+}
+
+/* A checkbox or radio with its text on the same line. */
+label.check {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	font-weight: 400;
+	cursor: pointer;
+}
+
+.check input {
+	width: 1.1rem;
+	height: 1.1rem;
+	margin: 0;
+	flex-shrink: 0;
+	accent-color: var(--accent);
+}
+
+/* Column of boxes used by the forms pages; ~Google Forms width, full width on phones. */
+.page {
+	display: grid;
+	gap: 1rem;
+	width: min(100% - 2rem, 48rem);
+	margin: 1.5rem auto 3rem;
+}
+
+.panel {
+	padding: 1.25rem 1.5rem;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+}
+
+/* First box of a form, with a colored band on top. */
+.form-head {
+	border-top: 8px solid var(--accent);
+}
+
+.form-head h1 {
+	margin: 0;
+	font-size: 1.75rem;
+	overflow-wrap: anywhere;
+}
+
+.panel.invalid {
+	border-color: var(--error-text);
+}
+
+.field-error {
+	margin: 0;
+	color: var(--error-text);
+	font-size: 0.9rem;
+}
+
+.notice {
+	margin: 0;
+	padding: 0.75rem 1rem;
+	background: var(--accent-soft);
+	border-radius: 8px;
+}
+
+/* Keeps line breaks typed by the user. */
+.prewrap {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
 }
 
 .error {

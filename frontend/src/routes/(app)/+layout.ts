@@ -1,9 +1,9 @@
 import { redirect } from '@sveltejs/kit';
 import { getSession } from '#lib/auth.svelte.js';
-import type { PageLoad } from './$types';
+import type { LayoutLoad } from './$types';
 
-// Runs before the home page renders: only logged-in users get past this point.
-export const load: PageLoad = async () => {
+// Every page in the (app) group needs a login (RN03); the user is shared with all of them.
+export const load: LayoutLoad = async () => {
 	const user = await getSession();
 	if (!user) redirect(307, '/login');
 	return { user };

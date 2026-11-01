@@ -1,19 +1,17 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { logout, typed } from '#lib/auth.svelte.js';
+	import { typed } from '#lib/auth.svelte.js';
 	import type { PageProps } from './$types';
 
-	// `data` is what +page.ts returned.
+	// `data.user` comes from the (app) layout.
 	let { data }: PageProps = $props();
-
-	async function handleLogout() {
-		await logout();
-		await goto('/login');
-	}
 </script>
 
-<main class="card">
-	<h1>Olá, {data.user.username}!</h1>
+<svelte:head>
+	<title>Sua conta · Cati Forms</title>
+</svelte:head>
+
+<main class="panel">
+	<h1>Sua conta</h1>
 
 	<dl>
 		<dt>Usuário</dt>
@@ -33,11 +31,13 @@
 		A senha aparece só para demonstração: ela vem do formulário que você acabou de enviar. O
 		servidor guarda apenas o hash e nunca a devolve.
 	</p>
-
-	<button type="button" onclick={handleLogout}>Sair</button>
 </main>
 
 <style>
+	h1 {
+		margin-top: 0;
+		font-size: 1.5rem;
+	}
 	dl {
 		display: grid;
 		grid-template-columns: auto 1fr;
