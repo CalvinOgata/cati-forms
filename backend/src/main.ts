@@ -1,13 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module.js';
+import { configureApp } from './app.setup.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
 
-  // Every route lives under /api so the frontend can proxy a single prefix.
-  app.setGlobalPrefix('api');
+  configureApp(app);
   app.enableShutdownHooks();
 
   const corsOrigin = config.get<string>('CORS_ORIGIN');
