@@ -62,8 +62,9 @@ dos `.env.example`. Depois, sobe as duas aplicações em modo watch:
 - API: <http://localhost:3000/api> (ex.: `GET /api/health`)
 
 Para entrar, use o usuário de exemplo **`admin`** / **`admin123`** ou crie uma conta
-em `/signup`. Ainda não há banco de dados: usuários e sessões ficam na memória do
-backend e somem quando ele reinicia (o `admin` é recriado na inicialização).
+em `/signup`. Ainda não há banco de dados: usuários, sessões, formulários e respostas
+ficam na memória do backend e somem quando ele reinicia (o `admin` e um formulário de
+exemplo são recriados na inicialização).
 
 Para ver todos os comandos disponíveis, rode `make`:
 
@@ -94,6 +95,7 @@ cati-forms/
 │   │   ├── app.module.ts # módulo raiz
 │   │   ├── auth/         # cadastro, login, logout e sessão (AuthGuard)
 │   │   ├── users/        # usuários em memória e hash de senha (scrypt)
+│   │   ├── forms/        # formulários, perguntas, respostas e suas regras
 │   │   └── health/       # GET /api/health
 │   ├── test/             # testes e2e
 │   ├── scripts/dev.mjs   # modo dev: tsc --watch + node --watch
@@ -103,9 +105,15 @@ cati-forms/
     │   ├── app.css       # estilos globais
     │   ├── lib/          # código compartilhado (importado via #lib/...)
     │   │   ├── api.ts    # cliente HTTP para a API
-    │   │   └── auth.svelte.ts  # login, cadastro, logout e sessão
+    │   │   ├── auth.svelte.ts  # login, cadastro, logout e sessão
+    │   │   └── forms.ts  # formulários e respostas (tipos, validação, chamadas)
     │   └── routes/       # páginas (roteamento por arquivos)
-    │       ├── +page.svelte      # / (exige login)
+    │       ├── (app)/            # páginas que exigem login, com a barra do topo
+    │       │   ├── +page.svelte  # / lista de formulários
+    │       │   ├── forms/new/    # /forms/new criação de formulário
+    │       │   ├── forms/[id]/   # /forms/:id link, perguntas e respostas
+    │       │   └── account/      # /account dados da conta
+    │       ├── f/[id]/           # /f/:id página pública de resposta
     │       ├── login/            # /login
     │       └── signup/           # /signup
     └── .env.example
@@ -133,6 +141,36 @@ maiúsculas de minúsculas, e senha com 6 a 128 caracteres.
 
 Para proteger uma rota nova, use `@UseGuards(AuthGuard)` (exportado pelo `AuthModule`);
 o usuário logado fica em `req.user`.
+
+## Formulários
+
+| Página | O que faz |
+| ------ | --------- |
+| `/` | Lista todos os formulários, de qualquer usuário (RN10) |
+| `/forms/new` | Cria um formulário com título, descrição, pedido de e-mail opcional (RF07) e perguntas discursivas, de múltipla escolha e de escolha única com justificativa (RF03–RF06) |
+| `/forms/:id` | Mostra o link de resposta (RF08), as perguntas e as respostas recebidas |
+| `/f/:id` | Página pública de resposta, sem login (RF09, RN09) |
+
+Todas as perguntas são obrigatórias (RN04), a justificativa também (RN05) e a múltipla
+escolha aceita qualquer quantidade de opções marcadas (RN06). Um formulário não pode ser
+editado nem excluído depois de criado (RN07), então a criação pede confirmação.
+
+| Rota | Login | O que faz | Erros |
+| ---- | ----- | --------- | ----- |
+| `GET /api/forms` | sim | Lista os formulários, do mais novo ao mais antigo, com o total de perguntas e respostas | `401` |
+| `POST /api/forms` | sim | Cria um formulário (`201`) | `400` dados inválidos, `401` |
+| `GET /api/forms/:id` | sim | O formulário com todas as respostas (RN10) | `401`, `404` |
+| `GET /api/public/forms/:id` | não | O formulário para responder, sem as respostas | `404` |
+| `POST /api/public/forms/:id/responses` | não | Envia uma resposta (`201`) | `400` pergunta sem resposta, `404` |
+
+Não há rotas de edição nem de exclusão (RN07). Os erros `400` trazem uma lista de
+mensagens que dizem qual pergunta está errada (ex.: `Pergunta 2: Marque pelo menos uma
+opção.`). O frontend (`frontend/src/lib/forms.ts`) confere as mesmas regras antes de
+enviar, para apontar o campo na página.
+
+Formulários, perguntas, respostas e as respostas de cada pergunta são guardados como
+entidades separadas, ligadas por id (`backend/src/forms/forms.repository.ts`), no
+formato das futuras tabelas do banco (RF12, RF13, RNF08).
 
 ## Variáveis de ambiente
 
