@@ -1,36 +1,53 @@
 <script lang="ts">
-	import { api } from '#lib/api.js';
+	import { goto } from '$app/navigation';
+	import { logout, typed } from '#lib/auth.svelte.js';
+	import type { PageProps } from './$types';
 
-	type Health = { status: 'ok'; timestamp: string };
+	// `data` is what +page.ts returned.
+	let { data }: PageProps = $props();
 
-	const health = api<Health>('/health');
+	async function handleLogout() {
+		await logout();
+		await goto('/login');
+	}
 </script>
 
-<main>
-	<h1>Cati Forms</h1>
-	<p>
-		API:
-		{#await health}
-			verificando…
-		{:then}
-			<strong class="ok">online</strong>
-		{:catch}
-			<strong class="err">offline</strong>
-		{/await}
+<main class="card">
+	<h1>Olá, {data.user.username}!</h1>
+
+	<dl>
+		<dt>Usuário</dt>
+		<dd>{data.user.username}</dd>
+
+		<dt>Senha</dt>
+		<dd>
+			{#if typed.password}
+				<code>{typed.password}</code>
+			{:else}
+				<span class="muted">indisponível após recarregar a página</span>
+			{/if}
+		</dd>
+	</dl>
+
+	<p class="muted">
+		A senha aparece só para demonstração: ela vem do formulário que você acabou de enviar. O
+		servidor guarda apenas o hash e nunca a devolve.
 	</p>
+
+	<button type="button" onclick={handleLogout}>Sair</button>
 </main>
 
 <style>
-	main {
-		max-width: 40rem;
-		margin: 0 auto;
-		padding: 2rem 1rem;
-		font-family: system-ui, sans-serif;
+	dl {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: 0.5rem 1rem;
 	}
-	.ok {
-		color: #15803d;
+	dt {
+		font-weight: 600;
 	}
-	.err {
-		color: #b91c1c;
+	dd {
+		margin: 0;
+		overflow-wrap: anywhere;
 	}
 </style>

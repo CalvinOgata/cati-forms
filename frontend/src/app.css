@@ -1,0 +1,114 @@
+:root {
+	--bg: #f5f6f8;
+	--surface: #ffffff;
+	--text: #1c1f24;
+	--muted: #5f6672;
+	--border: #d6d9de;
+	--accent: #1d4ed8;
+	--accent-text: #ffffff;
+	--error-bg: #fdecec;
+	--error-text: #a61b1b;
+	--ok: #15803d;
+	color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #121417;
+		--surface: #1b1e23;
+		--text: #e8eaed;
+		--muted: #9aa1ac;
+		--border: #343a42;
+		--accent: #5b8cff;
+		--accent-text: #0b0d10;
+		--error-bg: #3a1a1a;
+		--error-text: #ffb4b4;
+		--ok: #4ade80;
+		color-scheme: dark;
+	}
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: system-ui, sans-serif;
+	line-height: 1.5;
+}
+
+a {
+	color: var(--accent);
+}
+
+/* Centered box used by every page; full width on phones (RNF02). */
+.card {
+	width: min(100% - 2rem, 26rem);
+	margin: 3rem auto;
+	padding: 1.5rem;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+}
+
+.card h1 {
+	margin-top: 0;
+	font-size: 1.5rem;
+}
+
+form {
+	display: grid;
+	gap: 1rem;
+}
+
+label {
+	display: grid;
+	gap: 0.25rem;
+	font-weight: 500;
+}
+
+input {
+	padding: 0.6rem 0.75rem;
+	font: inherit;
+	color: inherit;
+	background: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+}
+
+input:focus {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+}
+
+button {
+	padding: 0.65rem 1rem;
+	font: inherit;
+	font-weight: 600;
+	color: var(--accent-text);
+	background: var(--accent);
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+button:disabled {
+	opacity: 0.6;
+	cursor: progress;
+}
+
+.error {
+	margin: 0;
+	padding: 0.6rem 0.75rem;
+	color: var(--error-text);
+	background: var(--error-bg);
+	border-radius: 8px;
+}
+
+.muted {
+	color: var(--muted);
+	font-size: 0.9rem;
+}
