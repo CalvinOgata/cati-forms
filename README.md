@@ -61,6 +61,10 @@ dos `.env.example`. Depois, sobe as duas aplicações em modo watch:
 - Frontend: <http://localhost:5173>
 - API: <http://localhost:3000/api> (ex.: `GET /api/health`)
 
+Para entrar, use o usuário de exemplo **`admin`** / **`admin123`** ou crie uma conta
+em `/signup`. Ainda não há banco de dados: usuários e sessões ficam na memória do
+backend e somem quando ele reinicia (o `admin` é recriado na inicialização).
+
 Para ver todos os comandos disponíveis, rode `make`:
 
 | Comando          | O que faz                                                   |
@@ -85,21 +89,50 @@ cati-forms/
 ├── Makefile              # ponto de entrada para todos os comandos
 ├── backend/              # API NestJS
 │   ├── src/
-│   │   ├── main.ts       # bootstrap (prefixo global /api, config, CORS)
+│   │   ├── main.ts       # bootstrap (config, CORS, porta)
+│   │   ├── app.setup.ts  # prefixo /api, cookies e validação (também usado nos testes)
 │   │   ├── app.module.ts # módulo raiz
-│   │   └── health/       # módulo de exemplo: GET /api/health
+│   │   ├── auth/         # cadastro, login, logout e sessão (AuthGuard)
+│   │   ├── users/        # usuários em memória e hash de senha (scrypt)
+│   │   └── health/       # GET /api/health
 │   ├── test/             # testes e2e
 │   ├── scripts/dev.mjs   # modo dev: tsc --watch + node --watch
 │   └── .env.example
 └── frontend/             # SPA SvelteKit
     ├── src/
+    │   ├── app.css       # estilos globais
     │   ├── lib/          # código compartilhado (importado via #lib/...)
-    │   │   └── api.ts    # cliente HTTP para a API
+    │   │   ├── api.ts    # cliente HTTP para a API
+    │   │   └── auth.svelte.ts  # login, cadastro, logout e sessão
     │   └── routes/       # páginas (roteamento por arquivos)
+    │       ├── +page.svelte      # / (exige login)
+    │       ├── login/            # /login
+    │       └── signup/           # /signup
     └── .env.example
 ```
 
 Cada pasta é um pacote npm independente, com seu próprio `package.json` e lockfile.
+
+## Autenticação
+
+Há um único tipo de usuário, com acesso total (RN02). A sessão fica em um cookie
+`httpOnly` chamado `session`, e as senhas são guardadas apenas como hash scrypt com
+salt aleatório (RNF05).
+
+| Rota | O que faz | Erros |
+| ---- | --------- | ----- |
+| `POST /api/auth/signup` | Cria a conta e já faz login (RF01) | `400` dados inválidos, `409` nome em uso (RN01) |
+| `POST /api/auth/login` | Faz login (RF02) | `400` campos vazios, `401` usuário ou senha incorretos |
+| `POST /api/auth/logout` | Encerra a sessão (RF02) | — |
+| `GET /api/auth/me` | Retorna o usuário logado | `401` sem sessão |
+
+As rotas recebem e devolvem JSON (`{ "username": "...", "password": "..." }` na
+entrada; `{ "username", "createdAt" }` na saída, nunca a senha). Regras do cadastro:
+usuário com 3 a 32 caracteres (letras, números, `.`, `_`, `-`), único sem diferenciar
+maiúsculas de minúsculas, e senha com 6 a 128 caracteres.
+
+Para proteger uma rota nova, use `@UseGuards(AuthGuard)` (exportado pelo `AuthModule`);
+o usuário logado fica em `req.user`.
 
 ## Variáveis de ambiente
 
