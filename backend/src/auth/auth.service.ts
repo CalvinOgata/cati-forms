@@ -9,8 +9,8 @@ export interface Session {
 
 @Injectable()
 export class AuthService {
-  // Active sessions: random token → lowercased username. In memory, so a server
-  // restart logs everyone out.
+  // Active sessions: random token → user id. In memory, so a server restart
+  // logs everyone out; the accounts themselves are in the database.
   private readonly sessions = new Map<string, string>();
 
   constructor(private readonly users: UsersService) {}
@@ -36,14 +36,14 @@ export class AuthService {
   }
 
   /** The user a session token belongs to, if the session is still active. */
-  userForToken(token: string | undefined): User | undefined {
-    const username = token ? this.sessions.get(token) : undefined;
-    return username ? this.users.findByUsername(username) : undefined;
+  async userForToken(token: string | undefined): Promise<User | null> {
+    const userId = token ? this.sessions.get(token) : undefined;
+    return userId ? this.users.findById(userId) : null;
   }
 
   private startSession(user: User): Session {
     const token = randomBytes(32).toString('base64url');
-    this.sessions.set(token, user.username.toLowerCase());
+    this.sessions.set(token, user.id);
     return { token, user };
   }
 }

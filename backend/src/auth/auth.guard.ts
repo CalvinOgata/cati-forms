@@ -16,9 +16,9 @@ import { SESSION_COOKIE, type AuthenticatedRequest } from './session.js';
 export class AuthGuard implements CanActivate {
   constructor(private readonly auth: AuthService) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const user = this.auth.userForToken(req.cookies?.[SESSION_COOKIE]);
+    const user = await this.auth.userForToken(req.cookies?.[SESSION_COOKIE]);
     if (!user) {
       throw new UnauthorizedException('Faça login para continuar.');
     }

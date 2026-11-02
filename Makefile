@@ -109,11 +109,11 @@ db-studio: install env db-up ## Browse the data in Prisma Studio
 # ---------------------------------------------------------------------------
 
 .PHONY: dev
-dev: setup ## Run backend and frontend in watch mode
+dev: setup db-up db-deploy ## Run backend and frontend in watch mode (and the database)
 	@$(MAKE) --no-print-directory -j2 _dev-backend _dev-frontend
 
 .PHONY: dev-backend
-dev-backend: setup ## Run only the backend in watch mode
+dev-backend: setup db-up db-deploy ## Run only the backend in watch mode (and the database)
 	cd $(BACKEND) && $(NPM) run start:dev
 
 .PHONY: dev-frontend
@@ -142,7 +142,7 @@ build-frontend: install
 	cd $(FRONTEND) && $(NPM) run build
 
 .PHONY: start
-start: env build ## Build and serve the production bundles
+start: env build db-up db-deploy ## Build and serve the production bundles
 	@$(MAKE) --no-print-directory -j2 _start-backend _start-frontend
 
 .PHONY: _start-backend _start-frontend
@@ -171,11 +171,11 @@ format: install ## Format both apps with Prettier
 	cd $(FRONTEND) && $(NPM) run format
 
 .PHONY: test
-test: install ## Run backend unit tests
+test: install db-up ## Run backend unit tests (on the cati_forms_test database)
 	cd $(BACKEND) && $(NPM) test
 
 .PHONY: test-e2e
-test-e2e: install ## Run backend end-to-end tests
+test-e2e: install db-up ## Run backend end-to-end tests (on the cati_forms_test database)
 	cd $(BACKEND) && $(NPM) run test:e2e
 
 # ---------------------------------------------------------------------------

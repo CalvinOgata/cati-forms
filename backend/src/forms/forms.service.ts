@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import {
   BadRequestException,
   Injectable,
@@ -6,6 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { isEmail } from 'class-validator';
+import { newId } from '../prisma/new-id.js';
 import type {
   AnswerDto,
   CreateFormDto,
@@ -27,11 +27,6 @@ import type {
   FormSummary,
   Question,
 } from './forms.types.js';
-
-/** Short, URL-safe and unguessable: it ends up in the form's public link. */
-function newId(): string {
-  return randomBytes(8).toString('base64url');
-}
 
 @Injectable()
 export class FormsService implements OnModuleInit {

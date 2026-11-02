@@ -3,12 +3,18 @@ import { INestApplication } from '@nestjs/common';
 import type { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
 import { configureApp } from './../src/app.setup.js';
+import { PrismaService } from './../src/prisma/prisma.service.js';
+import { resetDatabase } from './database.js';
 
-/** Boots a fresh app, configured exactly like main.ts (fresh in-memory data each time). */
+/**
+ * Boots a fresh app, configured exactly like main.ts, on an empty test
+ * database (startup then creates the sample data again).
+ */
 export async function createTestApp(): Promise<INestApplication<App>> {
   const moduleFixture = await Test.createTestingModule({
     imports: [AppModule],
   }).compile();
+  await resetDatabase(moduleFixture.get(PrismaService));
 
   const app = moduleFixture.createNestApplication<INestApplication<App>>();
   configureApp(app);
