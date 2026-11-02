@@ -11,6 +11,7 @@ Os requisitos do sistema estão em um documento fornecido pela equipe.
 | Frontend | [SvelteKit](https://svelte.dev/docs/kit) (Svelte 5, SPA) + Vite   | `frontend/` |
 | Backend  | [NestJS](https://docs.nestjs.com) (REST API)                      | `backend/`  |
 | Linguagem | TypeScript nas duas pontas                                        |             |
+| Banco    | [PostgreSQL](https://www.postgresql.org) 18 + [Prisma](https://www.prisma.io) 7 | `backend/prisma/` |
 | Testes   | [Vitest](https://vitest.dev) 5                                    | `backend/`  |
 
 O frontend é compilado como SPA estática (`@sveltejs/adapter-static`) e conversa com
@@ -45,6 +46,7 @@ parser e o Vite/Vitest removem os tipos com o oxc.
   rode `mise install` na raiz; com nvm, `nvm install && nvm use`.
 - npm (vem com o Node)
 - GNU Make
+- Docker com Compose (para o PostgreSQL)
 
 O `make` verifica a versão do Node antes de qualquer comando e a instalação falha
 (`engine-strict`) em versões anteriores à 26.
@@ -56,29 +58,37 @@ make dev
 ```
 
 Na primeira execução isso instala as dependências e cria os arquivos `.env` a partir
-dos `.env.example`. Depois, sobe as duas aplicações em modo watch:
+dos `.env.example`. Depois, sobe o PostgreSQL no Docker, aplica as migrations pendentes
+e sobe as duas aplicações em modo watch:
 
 - Frontend: <http://localhost:5173>
 - API: <http://localhost:3000/api> (ex.: `GET /api/health`)
 
 Para entrar, use o usuário de exemplo **`admin`** / **`admin123`** ou crie uma conta
-em `/signup`. Ainda não há banco de dados: usuários, sessões, formulários e respostas
-ficam na memória do backend e somem quando ele reinicia (o `admin` e um formulário de
-exemplo são recriados na inicialização).
+em `/signup`. Contas, formulários e respostas ficam no PostgreSQL (veja
+[Banco de dados](#banco-de-dados)) e sobrevivem a reinícios. Na inicialização, o `admin`
+é criado se ainda não existir, e um formulário de exemplo com uma resposta é criado se
+ainda não houver nenhum formulário.
 
 Para ver todos os comandos disponíveis, rode `make`:
 
 | Comando          | O que faz                                                   |
 | ---------------- | ----------------------------------------------------------- |
-| `make dev`       | Sobe backend + frontend em modo desenvolvimento             |
+| `make dev`       | Sobe banco + backend + frontend em modo desenvolvimento     |
 | `make dev-backend` / `make dev-frontend` | Sobe só uma das partes              |
 | `make build`     | Gera os builds de produção (`backend/dist`, `frontend/build`) |
 | `make start`     | Builda e serve os bundles de produção                       |
 | `make check`     | Checagem de tipos com TS 7 (tsc + svelte-check --tsgo)      |
 | `make lint`      | Lint (oxlint nas duas pontas + Prettier no frontend)        |
 | `make format`    | Formata o código com Prettier                               |
-| `make test`      | Testes unitários do backend (Vitest)                        |
-| `make test-e2e`  | Testes end-to-end do backend                                |
+| `make test`      | Testes unitários do backend (Vitest, no banco de teste)     |
+| `make test-e2e`  | Testes end-to-end do backend (no banco de teste)            |
+| `make db-up` / `make db-down` | Sobe / para o PostgreSQL no Docker (os dados ficam) |
+| `make db-migrate` | Aplica as migrations; após mudar o schema, cria uma (`name=...`) |
+| `make db-deploy` | Só aplica migrations pendentes (produção, CI)              |
+| `make db-check`  | Falha se o `schema.prisma` tiver mudanças sem migration     |
+| `make db-reset`  | Apaga todos os dados e reaplica as migrations               |
+| `make db-studio` | Abre o Prisma Studio para ver os dados                      |
 | `make node-version` | Confere se o Node instalado atende ao `.nvmrc`           |
 | `make clean`     | Remove artefatos de build                                   |
 | `make distclean` | Remove artefatos de build e `node_modules`                  |
@@ -88,15 +98,23 @@ Para ver todos os comandos disponíveis, rode `make`:
 ```
 cati-forms/
 ├── Makefile              # ponto de entrada para todos os comandos
+├── compose.yaml          # PostgreSQL local (make db-up)
+├── .github/workflows/    # CI (GitHub Actions)
 ├── backend/              # API NestJS
+│   ├── prisma/
+│   │   ├── schema.prisma # tabelas do banco
+│   │   └── migrations/   # SQL gerado a partir do schema (versionado)
+│   ├── prisma.config.ts  # onde estão o schema e as migrations, e o DATABASE_URL
 │   ├── src/
 │   │   ├── main.ts       # bootstrap (config, CORS, porta)
 │   │   ├── app.setup.ts  # prefixo /api, cookies e validação (também usado nos testes)
 │   │   ├── app.module.ts # módulo raiz
 │   │   ├── auth/         # cadastro, login, logout e sessão (AuthGuard)
-│   │   ├── users/        # usuários em memória e hash de senha (scrypt)
+│   │   ├── users/        # usuários (no banco) e hash de senha (scrypt)
+│   │   ├── prisma/       # PrismaService (conexão com o banco) e geração de ids
 │   │   ├── forms/        # formulários, perguntas, respostas e suas regras
-│   │   └── health/       # GET /api/health
+│   │   ├── health/       # GET /api/health
+│   │   └── generated/    # Prisma Client, gerado do schema (fora do git)
 │   ├── test/             # testes e2e
 │   ├── scripts/dev.mjs   # modo dev: tsc --watch + node --watch
 │   └── .env.example
@@ -125,7 +143,9 @@ Cada pasta é um pacote npm independente, com seu próprio `package.json` e lock
 
 Há um único tipo de usuário, com acesso total (RN02). A sessão fica em um cookie
 `httpOnly` chamado `session`, e as senhas são guardadas apenas como hash scrypt com
-salt aleatório (RNF05).
+salt aleatório (RNF05). As contas ficam na tabela `users`; as sessões ficam na memória
+do backend, então reiniciá-lo desloga todo mundo (controles de segurança avançados não
+são prioridade nesta versão, RNF06).
 
 | Rota | O que faz | Erros |
 | ---- | --------- | ----- |
@@ -168,9 +188,65 @@ mensagens que dizem qual pergunta está errada (ex.: `Pergunta 2: Marque pelo me
 opção.`). O frontend (`frontend/src/lib/forms.ts`) confere as mesmas regras antes de
 enviar, para apontar o campo na página.
 
-Formulários, perguntas, respostas e as respostas de cada pergunta são guardados como
-entidades separadas, ligadas por id (`backend/src/forms/forms.repository.ts`), no
-formato das futuras tabelas do banco (RF12, RF13, RNF08).
+Formulários, perguntas, respostas e as respostas de cada pergunta são guardados em
+tabelas separadas, ligadas por chaves estrangeiras (RF12, RF13, RNF08). As consultas
+ficam em `backend/src/forms/forms.repository.ts`; um formulário e suas perguntas, assim
+como uma resposta e as respostas de cada pergunta, são gravados juntos ou nada é gravado.
+
+## Banco de dados
+
+O banco é PostgreSQL, acessado pelo [Prisma](https://www.prisma.io) 7. Em
+desenvolvimento ele roda no Docker (`compose.yaml`), escutando só em `localhost:5432`
+com usuário e senha `cati`. Para criar as tabelas:
+
+```sh
+make db-migrate
+```
+
+Isso sobe o container, aplica as migrations de `backend/prisma/migrations/` e gera o
+Prisma Client em `backend/src/generated/prisma/`. O client é gerado (e fica fora do
+git); o `make install` o refaz sempre que o `schema.prisma` muda.
+
+| Tabela | Conteúdo |
+| ------ | -------- |
+| `users` | Quem cria e consulta formulários (RF01). `username_key` é o nome em minúsculas, único (RN01); a senha fica só como hash (RNF05) |
+| `forms` | Título, descrição, se pede e-mail (RF07) e o autor (RF03) |
+| `questions` | As perguntas de cada formulário, na ordem (`position`), com tipo e opções (RF12) |
+| `responses` | Cada envio pelo link, anônimo, com o e-mail quando o formulário pede (RF09, RF13, RN08) |
+| `answers` | A resposta de cada pergunta em um envio: opções marcadas e texto (ou justificativa) |
+
+As tabelas se ligam por chaves estrangeiras (RNF08) que impedem exclusões, já que nada
+é apagado (RN07), e cada envio tem no máximo uma resposta por pergunta. As regras que
+dependem do tipo da pergunta (RN04–RN06, RN08) ficam no `FormsService`, que valida tudo
+antes de gravar.
+
+**Mudando o schema:** edite `backend/prisma/schema.prisma` e rode
+`make db-migrate name=descricao-da-mudanca`. A nova pasta em `prisma/migrations/` deve
+ir no mesmo commit que a mudança do schema; o `make db-check` (que roda na CI) falha se
+alguma mudança do schema ficou sem migration.
+
+**Testes:** `make test` e `make test-e2e` usam um banco separado, `cati_forms_test`
+(o nome do `DATABASE_URL` com `_test` no fim, ou o `TEST_DATABASE_URL`, se definido).
+Ele é criado e migrado automaticamente antes dos testes e esvaziado antes de cada um,
+então os dados de desenvolvimento nunca são tocados. Os arquivos de teste rodam um de
+cada vez, já que compartilham esse banco. Há testes que reiniciam a aplicação sem
+esvaziar o banco, para conferir que contas, formulários e respostas continuam lá (e que
+as sessões, que ficam em memória, não).
+
+O `prisma` e o `@prisma/client` estão fixados na mesma versão (7.10.1). Não atualize só
+um deles: no npm, a tag `latest` do `prisma` aponta para um release candidate da v8.
+
+## CI
+
+A cada push na `main` e a cada pull request, o GitHub Actions
+(`.github/workflows/ci.yml`) roda os mesmos comandos do `make` que se usa localmente,
+com o PostgreSQL subido pelo `compose.yaml`:
+
+1. `make ci`: instala as dependências a partir dos lockfiles e gera o Prisma Client;
+2. `make db-check`: aplica as migrations num banco novo e confere se nenhuma falta;
+3. `make check`, `make lint`, `make test`, `make test-e2e` e `make build`.
+
+O `DATABASE_URL` vem do próprio workflow, então a CI não precisa de segredos.
 
 ## Variáveis de ambiente
 
@@ -180,6 +256,11 @@ formato das futuras tabelas do banco (RF12, RF13, RNF08).
 | ------------- | ------ | ------------------------------------------------------ |
 | `PORT`        | `3000` | Porta da API                                           |
 | `CORS_ORIGIN` | vazio  | Origens permitidas (separadas por vírgula), se houver  |
+| `DATABASE_URL` | `postgresql://cati:cati@localhost:5432/cati_forms` | Conexão com o PostgreSQL |
+| `TEST_DATABASE_URL` | vazio | Banco dos testes; vazio usa o `DATABASE_URL` com `_test` no nome |
+
+O `make env` nunca sobrescreve um `.env` existente: se o seu foi criado antes do banco,
+copie o `DATABASE_URL` do `.env.example`.
 
 **`frontend/.env`**
 
