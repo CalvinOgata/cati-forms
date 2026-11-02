@@ -96,6 +96,10 @@ db-migrate: install env db-up ## Apply migrations; after a schema change, create
 db-deploy: install ## Apply pending migrations only (production, CI)
 	cd $(BACKEND) && $(NPM) run db:deploy
 
+.PHONY: db-check
+db-check: install env db-up db-deploy ## Fail if schema.prisma has changes that no migration covers
+	cd $(BACKEND) && $(NPM) run db:check
+
 .PHONY: db-reset
 db-reset: install env db-up ## Erase all data and reapply every migration
 	cd $(BACKEND) && $(NPM) run db:reset

@@ -8,13 +8,16 @@ import { resetDatabase } from './database.js';
 
 /**
  * Boots a fresh app, configured exactly like main.ts, on an empty test
- * database (startup then creates the sample data again).
+ * database (startup then creates the sample data again). `keepData` skips
+ * emptying it, to check what survives a restart.
  */
-export async function createTestApp(): Promise<INestApplication<App>> {
+export async function createTestApp({ keepData = false } = {}): Promise<
+  INestApplication<App>
+> {
   const moduleFixture = await Test.createTestingModule({
     imports: [AppModule],
   }).compile();
-  await resetDatabase(moduleFixture.get(PrismaService));
+  if (!keepData) await resetDatabase(moduleFixture.get(PrismaService));
 
   const app = moduleFixture.createNestApplication<INestApplication<App>>();
   configureApp(app);

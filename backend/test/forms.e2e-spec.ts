@@ -94,6 +94,36 @@ describe('Forms (e2e)', () => {
     ]);
   });
 
+  it('keeps forms and responses across a restart (RF12, RF13)', async () => {
+    const form = (await admin.post('/api/forms').send(NEW_FORM)).body;
+    const [text, multiple, single] = form.questions;
+    await request(app.getHttpServer())
+      .post(`/api/public/forms/${form.id}/responses`)
+      .send({
+        email: 'joao@example.com',
+        answers: [
+          { questionId: text.id, choices: [], text: 'Um app.' },
+          { questionId: multiple.id, choices: ['TS'], text: '' },
+          { questionId: single.id, choices: ['Front'], text: 'Gosto.' },
+        ],
+      })
+      .expect(201);
+    const before = (await admin.get(`/api/forms/${form.id}`)).body;
+
+    await app.close();
+    app = await createTestApp({ keepData: true });
+    admin = request.agent(app.getHttpServer());
+    await admin.post('/api/auth/login').send(SAMPLE_USER).expect(200);
+
+    expect((await admin.get(`/api/forms/${form.id}`)).body).toEqual(before);
+    // The sample form isn't created again.
+    const list = await admin.get('/api/forms').expect(200);
+    expect(list.body.map((f: { title: string }) => f.title)).toEqual([
+      NEW_FORM.title,
+      'Exemplo: inscrição no Banco de Talentos',
+    ]);
+  });
+
   it('lists the sample form created on startup', async () => {
     const list = await admin.get('/api/forms').expect(200);
     expect(list.body).toEqual([

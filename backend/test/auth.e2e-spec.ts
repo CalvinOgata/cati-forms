@@ -59,6 +59,28 @@ describe('Auth (e2e)', () => {
       .expect(200);
   });
 
+  it('keeps accounts across a restart, but not sessions', async () => {
+    const signup = await request(app.getHttpServer())
+      .post('/api/auth/signup')
+      .send({ username: 'maria', password: 'segredo123' })
+      .expect(201);
+    const cookie = signup.headers['set-cookie'];
+
+    await app.close();
+    app = await createTestApp({ keepData: true });
+
+    // Sessions live in memory (RNF06), so the old cookie no longer works...
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Cookie', cookie)
+      .expect(401);
+    // ...but the account is in the database.
+    await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ username: 'maria', password: 'segredo123' })
+      .expect(200);
+  });
+
   it('rejects a username that is already taken, ignoring case (RN01)', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/auth/signup')
