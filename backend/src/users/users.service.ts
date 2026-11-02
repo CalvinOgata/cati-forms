@@ -29,8 +29,20 @@ export class UsersService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit(): Promise<void> {
-    if (!(await this.findByUsername(SAMPLE_USER.username))) {
-      await this.create(SAMPLE_USER.username, SAMPLE_USER.password);
+    await this.sampleUser();
+  }
+
+  /** The sample user, created if it doesn't exist yet. */
+  async sampleUser(): Promise<User> {
+    const existing = await this.findByUsername(SAMPLE_USER.username);
+    if (existing) return existing;
+    try {
+      return await this.create(SAMPLE_USER.username, SAMPLE_USER.password);
+    } catch (error) {
+      // Someone else created it in the meantime (another startup hook, or
+      // another instance of the API starting at the same time).
+      if (!(error instanceof ConflictException)) throw error;
+      return (await this.findByUsername(SAMPLE_USER.username))!;
     }
   }
 

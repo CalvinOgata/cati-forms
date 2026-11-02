@@ -24,19 +24,22 @@ export class FormsController {
 
   /** GET /api/forms: every form, newest first. */
   @Get()
-  list(): FormSummary[] {
+  list(): Promise<FormSummary[]> {
     return this.forms.list();
   }
 
   /** GET /api/forms/:id: the form with its responses. 404 if it doesn't exist. */
   @Get(':id')
-  detail(@Param('id') id: string): FormDetail {
+  detail(@Param('id') id: string): Promise<FormDetail> {
     return this.forms.detail(id);
   }
 
   /** POST /api/forms: creates a form owned by the logged-in user. */
   @Post()
-  create(@Body() body: CreateFormDto, @Req() req: AuthenticatedRequest): Form {
-    return this.forms.create(body, req.user.username);
+  create(
+    @Body() body: CreateFormDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<Form> {
+    return this.forms.create(body, req.user.id);
   }
 }

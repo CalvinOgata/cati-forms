@@ -10,7 +10,7 @@ export class PublicFormsController {
 
   /** GET /api/public/forms/:id: the form to answer, without its responses. */
   @Get(':id')
-  get(@Param('id') id: string): Form {
+  get(@Param('id') id: string): Promise<Form> {
     return this.forms.publicForm(id);
   }
 
@@ -19,7 +19,7 @@ export class PublicFormsController {
   submit(
     @Param('id') id: string,
     @Body() body: SubmitResponseDto,
-  ): Pick<FormResponse, 'id' | 'submittedAt'> {
+  ): Promise<Pick<FormResponse, 'id' | 'submittedAt'>> {
     return this.forms.submit(id, body);
   }
 }

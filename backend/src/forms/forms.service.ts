@@ -6,19 +6,14 @@ import {
 } from '@nestjs/common';
 import { isEmail } from 'class-validator';
 import { newId } from '../prisma/new-id.js';
+import { UsersService } from '../users/users.service.js';
 import type {
   AnswerDto,
   CreateFormDto,
   CreateQuestionDto,
   SubmitResponseDto,
 } from './forms.dto.js';
-import {
-  FormsRepository,
-  type AnswerRow,
-  type FormRow,
-  type QuestionRow,
-  type ResponseRow,
-} from './forms.repository.js';
+import { FormsRepository } from './forms.repository.js';
 import { SAMPLE_FORM, sampleResponse } from './forms.sample.js';
 import type {
   Form,
@@ -30,142 +25,90 @@ import type {
 
 @Injectable()
 export class FormsService implements OnModuleInit {
-  constructor(private readonly repository: FormsRepository) {}
+  constructor(
+    private readonly repository: FormsRepository,
+    private readonly users: UsersService,
+  ) {}
 
-  /** Creates an example form with one response, so the app isn't empty on first use. */
-  onModuleInit(): void {
-    const form = this.create(SAMPLE_FORM, 'admin');
-    this.submit(form.id, sampleResponse(form));
+  /**
+   * Creates an example form with one response when there are no forms yet, so
+   * the app isn't empty on first use. Restarts don't add it again.
+   */
+  async onModuleInit(): Promise<void> {
+    if ((await this.repository.countForms()) > 0) return;
+    const admin = await this.users.sampleUser();
+    const form = await this.create(SAMPLE_FORM, admin.id);
+    await this.submit(form.id, sampleResponse(form));
   }
 
   /** RF03–RF07. Any logged-in user can create a form (RN03). */
-  create(input: CreateFormDto, createdBy: string): Form {
+  async create(input: CreateFormDto, authorId: string): Promise<Form> {
     const errors = formErrors(input);
     if (errors.length) throw new BadRequestException(errors);
 
-    const form: FormRow = {
+    return this.repository.insertForm({
       id: newId(),
       title: input.title.trim(),
       description: input.description.trim(),
       collectEmail: input.collectEmail,
-      createdBy,
+      authorId,
       createdAt: new Date(),
-    };
-    const questions: QuestionRow[] = input.questions.map((q, position) => ({
-      id: newId(),
-      formId: form.id,
-      position,
-      type: q.type,
-      title: q.title.trim(),
-      options: q.type === 'text' ? [] : q.options.map((o) => o.trim()),
-    }));
-    this.repository.insertForm(form, questions);
-    return toForm(form, questions);
+      questions: input.questions.map((q, position) => ({
+        id: newId(),
+        position,
+        type: q.type,
+        title: q.title.trim(),
+        options: q.type === 'text' ? [] : q.options.map((o) => o.trim()),
+      })),
+    });
   }
 
   /** Every form, newest first: any user sees all of them (RN02, RN10). */
-  list(): FormSummary[] {
-    return this.repository
-      .allForms()
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .map((form) => ({
-        id: form.id,
-        title: form.title,
-        description: form.description,
-        createdBy: form.createdBy,
-        createdAt: form.createdAt.toISOString(),
-        questionCount: this.repository.questionsOf(form.id).length,
-        responseCount: this.repository.countResponses(form.id),
-      }));
+  list(): Promise<FormSummary[]> {
+    return this.repository.listForms();
   }
 
   /** The form with all its responses (RN10). */
-  detail(id: string): FormDetail {
-    const form = this.publicForm(id);
-    const responses = this.repository
-      .responsesOf(id)
-      .map((response) => this.toFormResponse(response, form.questions));
-    return { ...form, responses };
+  async detail(id: string): Promise<FormDetail> {
+    const form = await this.publicForm(id);
+    return { ...form, responses: await this.repository.responsesOf(id) };
   }
 
   /** What anyone with the link sees (RF09, RN09): the questions, no responses. */
-  publicForm(id: string): Form {
-    const form = this.repository.findForm(id);
+  async publicForm(id: string): Promise<Form> {
+    const form = await this.repository.findForm(id);
     if (!form) throw new NotFoundException('Formulário não encontrado.');
-    return toForm(form, this.repository.questionsOf(id));
+    return form;
   }
 
   /** Stores a response linked to its form (RF13), if every question is answered. */
-  submit(
+  async submit(
     formId: string,
     input: SubmitResponseDto,
-  ): Pick<FormResponse, 'id' | 'submittedAt'> {
-    const form = this.publicForm(formId);
+  ): Promise<Pick<FormResponse, 'id' | 'submittedAt'>> {
+    // Forms never change (RN07), so the questions checked here are still the
+    // form's questions when the response is saved.
+    const form = await this.publicForm(formId);
     const errors = responseErrors(form, input);
     if (errors.length) throw new BadRequestException(errors);
 
-    const response: ResponseRow = {
+    return this.repository.insertResponse({
       id: newId(),
       formId,
       // Only kept when the form asks for it (RN08).
       email: form.collectEmail ? input.email!.trim() : null,
       submittedAt: new Date(),
-    };
-    const answers: AnswerRow[] = form.questions.map((question) => {
-      const answer = input.answers.find((a) => a.questionId === question.id)!;
-      return {
-        id: newId(),
-        responseId: response.id,
-        questionId: question.id,
-        choices: question.type === 'text' ? [] : answer.choices,
-        text: question.type === 'multiple_choice' ? '' : answer.text.trim(),
-      };
-    });
-    this.repository.insertResponse(response, answers);
-    return { id: response.id, submittedAt: response.submittedAt.toISOString() };
-  }
-
-  private toFormResponse(
-    response: ResponseRow,
-    questions: Question[],
-  ): FormResponse {
-    const answers = this.repository.answersOf(response.id);
-    return {
-      id: response.id,
-      email: response.email,
-      // In question order.
-      answers: questions.flatMap((question) => {
-        const answer = answers.find((a) => a.questionId === question.id);
-        return answer
-          ? [
-              {
-                questionId: answer.questionId,
-                choices: answer.choices,
-                text: answer.text,
-              },
-            ]
-          : [];
+      answers: form.questions.map((question) => {
+        const answer = input.answers.find((a) => a.questionId === question.id)!;
+        return {
+          id: newId(),
+          questionId: question.id,
+          choices: question.type === 'text' ? [] : answer.choices,
+          text: question.type === 'multiple_choice' ? '' : answer.text.trim(),
+        };
       }),
-      submittedAt: response.submittedAt.toISOString(),
-    };
+    });
   }
-}
-
-function toForm(form: FormRow, questions: QuestionRow[]): Form {
-  return {
-    id: form.id,
-    title: form.title,
-    description: form.description,
-    collectEmail: form.collectEmail,
-    questions: questions.map((q) => ({
-      id: q.id,
-      type: q.type,
-      title: q.title,
-      options: q.options,
-    })),
-    createdBy: form.createdBy,
-    createdAt: form.createdAt.toISOString(),
-  };
 }
 
 function formErrors(input: CreateFormDto): string[] {
