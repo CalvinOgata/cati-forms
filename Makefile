@@ -18,6 +18,13 @@ WEB_TAG := $(shell printf '\033[36m[web]\033[0m ')
 FRONTEND_DEPS := $(FRONTEND)/node_modules/.package-lock.json
 BACKEND_DEPS  := $(BACKEND)/node_modules/.package-lock.json
 
+# Prisma Client is generated from the schema (and gitignored), so it's rebuilt
+# whenever the schema or the dependencies change.
+PRISMA_SCHEMA := $(BACKEND)/prisma/schema.prisma
+PRISMA_CLIENT := $(BACKEND)/src/generated/prisma/client.ts
+
+COMPOSE ?= docker compose
+
 # Minimum Node.js major version; .nvmrc is the single source of truth.
 NODE_MAJOR := $(shell cat .nvmrc)
 
@@ -41,7 +48,7 @@ node-version: ## Verify the installed Node.js matches .nvmrc
 	@node -e 'if (+process.versions.node.split(".")[0] < +process.argv[1]) { console.error(`Node.js >= $(NODE_MAJOR) required, found $${process.version}. Run "mise install" or "nvm install".`); process.exit(1) }' $(NODE_MAJOR)
 
 .PHONY: install
-install: node-version $(FRONTEND_DEPS) $(BACKEND_DEPS) ## Install dependencies (only when package files changed)
+install: node-version $(FRONTEND_DEPS) $(BACKEND_DEPS) $(PRISMA_CLIENT) ## Install dependencies (only when package files changed)
 
 $(FRONTEND_DEPS): $(FRONTEND)/package.json $(FRONTEND)/package-lock.json | node-version
 	cd $(FRONTEND) && $(NPM) install
@@ -51,10 +58,15 @@ $(BACKEND_DEPS): $(BACKEND)/package.json $(BACKEND)/package-lock.json | node-ver
 	cd $(BACKEND) && $(NPM) install
 	@touch $@
 
+$(PRISMA_CLIENT): $(PRISMA_SCHEMA) $(BACKEND_DEPS)
+	cd $(BACKEND) && $(NPM) run db:generate
+	@touch $@
+
 .PHONY: ci
 ci: node-version ## Clean install from lockfiles (for CI)
 	cd $(FRONTEND) && $(NPM) ci
 	cd $(BACKEND) && $(NPM) ci
+	cd $(BACKEND) && $(NPM) run db:generate
 
 .PHONY: env
 env: $(FRONTEND)/.env $(BACKEND)/.env ## Create .env files from .env.example (never overwrites)
@@ -62,6 +74,35 @@ env: $(FRONTEND)/.env $(BACKEND)/.env ## Create .env files from .env.example (ne
 %/.env:
 	cp $*/.env.example $@
 	@echo "Created $@"
+
+# ---------------------------------------------------------------------------
+# Database (PostgreSQL in Docker, see compose.yaml)
+# ---------------------------------------------------------------------------
+
+.PHONY: db-up
+db-up: ## Start PostgreSQL and wait until it accepts connections
+	$(COMPOSE) up -d --wait db
+
+.PHONY: db-down
+db-down: ## Stop PostgreSQL (the data is kept)
+	$(COMPOSE) down
+
+.PHONY: db-migrate
+db-migrate: install env db-up ## Apply migrations; after a schema change, creates one (name=<change>)
+	cd $(BACKEND) && $(NPM) run db:migrate -- $(if $(name),--name $(name))
+	cd $(BACKEND) && $(NPM) run db:generate
+
+.PHONY: db-deploy
+db-deploy: install ## Apply pending migrations only (production, CI)
+	cd $(BACKEND) && $(NPM) run db:deploy
+
+.PHONY: db-reset
+db-reset: install env db-up ## Erase all data and reapply every migration
+	cd $(BACKEND) && $(NPM) run db:reset
+
+.PHONY: db-studio
+db-studio: install env db-up ## Browse the data in Prisma Studio
+	cd $(BACKEND) && $(NPM) run db:studio
 
 # ---------------------------------------------------------------------------
 # Development
