@@ -168,12 +168,14 @@ o usuário logado fica em `req.user`.
 | Página | O que faz |
 | ------ | --------- |
 | `/` | Lista todos os formulários, de qualquer usuário (RN10) |
-| `/forms/new` | Cria um formulário com título, descrição, pedido de e-mail opcional (RF07) e perguntas discursivas, de múltipla escolha e de escolha única com justificativa (RF03–RF06) |
+| `/forms/new` | Cria um formulário com título, descrição, pedido de e-mail opcional (RF07) e perguntas discursivas, de múltipla escolha, de escolha única e de escolha única com justificativa (RF03–RF06) |
 | `/forms/:id` | Mostra o link de resposta (RF08), as perguntas e as respostas recebidas |
 | `/f/:id` | Página pública de resposta, sem login (RF09, RN09) |
 
 Todas as perguntas são obrigatórias (RN04), a justificativa também (RN05) e a múltipla
-escolha aceita qualquer quantidade de opções marcadas (RN06). Um formulário não pode ser
+escolha aceita qualquer quantidade de opções marcadas (RN06). A escolha única sem
+justificativa é um quarto tipo, além dos três do documento de requisitos: pede uma
+opção e nada mais. Um formulário não pode ser
 editado nem excluído depois de criado (RN07), então a criação pede confirmação.
 A página de resposta confere tudo antes de enviar, com as mesmas regras do backend; o
 e-mail usa o mesmo validador (`isEmail` do pacote `validator`) nos dois lados.
