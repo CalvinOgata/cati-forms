@@ -1,7 +1,14 @@
 <script lang="ts">
 	import { ApiError } from '#lib/api.js';
 	import { showFirstInvalid } from '#lib/dom.js';
-	import { submitResponse, validateResponse, type Form, type NewResponse } from '#lib/forms.js';
+	import {
+		hasText,
+		isSingleChoice,
+		submitResponse,
+		validateResponse,
+		type Form,
+		type NewResponse
+	} from '#lib/forms.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -35,10 +42,10 @@
 				choices:
 					q.type === 'multiple_choice'
 						? (draft?.choices ?? [])
-						: q.type === 'single_choice_justified' && draft?.choice
+						: isSingleChoice(q.type) && draft?.choice
 							? [draft.choice]
 							: [],
-				text: q.type === 'multiple_choice' ? '' : (draft?.text ?? '')
+				text: hasText(q.type) ? (draft?.text ?? '') : ''
 			};
 		})
 	});

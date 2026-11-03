@@ -188,6 +188,39 @@ describe('FormsService', () => {
       expect(await prisma.response.count()).toBe(0);
     });
 
+    it('needs exactly one option for single choice, but no justification', async () => {
+      const shift = await service.create(
+        {
+          title: 'Turno',
+          description: '',
+          collectEmail: false,
+          questions: [
+            {
+              type: 'single_choice',
+              title: 'Qual turno?',
+              options: ['Manhã', 'Tarde'],
+            },
+          ],
+        },
+        ana,
+      );
+      const questionId = shift.questions[0].id;
+      const submit = (choices: string[], text: string) =>
+        service.submit(shift.id, { answers: [{ questionId, choices, text }] });
+
+      expect(await errorsOf(submit([], 'Tarde'))).toEqual([
+        'Pergunta 1: Escolha uma opção.',
+      ]);
+      expect(await errorsOf(submit(['Manhã', 'Tarde'], ''))).toEqual([
+        'Pergunta 1: Escolha uma opção.',
+      ]);
+      // Any text sent along isn't kept: there is no justification to keep.
+      await submit(['Tarde'], 'ignorada');
+      expect((await service.detail(shift.id)).responses[0].answers).toEqual([
+        { questionId, choices: ['Tarde'], text: '' },
+      ]);
+    });
+
     it('treats a missing answer as unanswered', async () => {
       expect(
         await errorsOf(

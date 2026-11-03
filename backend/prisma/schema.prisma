@@ -20,6 +20,7 @@ datasource db {
 enum QuestionType {
   text
   multiple_choice
+  single_choice
   single_choice_justified
 
   @@map("question_type")

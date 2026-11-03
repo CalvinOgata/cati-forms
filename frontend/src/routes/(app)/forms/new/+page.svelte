@@ -5,6 +5,7 @@
 	import { focusById, showFirstInvalid } from '#lib/dom.js';
 	import {
 		createForm,
+		isSingleChoice,
 		QUESTION_TYPES,
 		validateNewForm,
 		type NewForm,
@@ -189,7 +190,7 @@
 				<ul class="options">
 					{#each question.options as option, optionIndex (option.id)}
 						<li>
-							<span class="marker" class:round={question.type === 'single_choice_justified'}></span>
+							<span class="marker" class:round={isSingleChoice(question.type)}></span>
 							<input
 								id="o{option.id}"
 								bind:value={option.label}
@@ -210,7 +211,7 @@
 						</li>
 					{/each}
 					<li>
-						<span class="marker" class:round={question.type === 'single_choice_justified'}></span>
+						<span class="marker" class:round={isSingleChoice(question.type)}></span>
 						<button type="button" class="ghost add-option" onclick={() => addOption(question)}>
 							Adicionar opção
 						</button>

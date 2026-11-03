@@ -104,11 +104,18 @@ export class FormsService implements OnModuleInit {
           id: newId(),
           questionId: question.id,
           choices: question.type === 'text' ? [] : answer.choices,
-          text: question.type === 'multiple_choice' ? '' : answer.text.trim(),
+          text: hasText(question) ? answer.text.trim() : '',
         };
       }),
     });
   }
+}
+
+/** Whether the answer has written text: the answer itself, or a justification. */
+function hasText(question: Question): boolean {
+  return (
+    question.type === 'text' || question.type === 'single_choice_justified'
+  );
 }
 
 function formErrors(input: CreateFormDto): string[] {
@@ -179,9 +186,11 @@ function answerError(
       // Any number of options may be checked, but at least one (RN06).
       if (choices.length === 0) return 'Marque pelo menos uma opção.';
       return validChoices ? null : 'Opção inválida.';
+    case 'single_choice':
     case 'single_choice_justified':
       if (choices.length !== 1) return 'Escolha uma opção.';
       if (!validChoices) return 'Opção inválida.';
+      if (question.type === 'single_choice') return null;
       // The justification is required too (RN05).
       return answer!.text.trim() ? null : 'Escreva uma justificativa.';
   }

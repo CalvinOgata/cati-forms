@@ -7,14 +7,23 @@ import { api } from './api.js';
  * pages point at the exact field before anything is sent.
  */
 
-export type QuestionType = 'text' | 'multiple_choice' | 'single_choice_justified';
+export type QuestionType = 'text' | 'multiple_choice' | 'single_choice' | 'single_choice_justified';
 
 /** Labels shown in the builder and on the form page. */
 export const QUESTION_TYPES: Record<QuestionType, string> = {
 	text: 'Discursiva',
 	multiple_choice: 'Múltipla escolha',
+	single_choice: 'Escolha única',
 	single_choice_justified: 'Escolha única com justificativa'
 };
+
+/** Exactly one option is chosen (round markers, radio buttons). */
+export const isSingleChoice = (type: QuestionType) =>
+	type === 'single_choice' || type === 'single_choice_justified';
+
+/** The answer has written text: the answer itself, or a justification. */
+export const hasText = (type: QuestionType) =>
+	type === 'text' || type === 'single_choice_justified';
 
 export type Question = {
 	id: string;
@@ -43,7 +52,7 @@ export type FormSummary = Omit<Form, 'questions' | 'collectEmail'> & {
 /**
  * One answer per question. `choices` holds the selected options (exactly one for
  * single choice, none for text); `text` holds the written answer or, for single
- * choice, the justification.
+ * choice with justification, the justification (empty otherwise).
  */
 export type Answer = { questionId: string; choices: string[]; text: string };
 
@@ -114,8 +123,10 @@ function answerError(question: Question, answer: Answer | undefined): string | n
 			return answer?.choices.length && answer.choices.every(valid)
 				? null
 				: 'Marque pelo menos uma opção.';
+		case 'single_choice':
 		case 'single_choice_justified':
 			if (answer?.choices.length !== 1 || !valid(answer.choices[0])) return 'Escolha uma opção.';
+			if (question.type === 'single_choice') return null;
 			return answer.text.trim() ? null : 'Escreva uma justificativa.';
 	}
 }

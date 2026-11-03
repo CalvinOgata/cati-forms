@@ -179,6 +179,44 @@ describe('Forms (e2e)', () => {
     await admin.post('/api/forms').send({ title: 'Só título' }).expect(400);
   });
 
+  it('has single choice questions without a justification', async () => {
+    const created = await admin
+      .post('/api/forms')
+      .send({
+        title: 'Disponibilidade',
+        description: '',
+        collectEmail: false,
+        questions: [
+          {
+            type: 'single_choice',
+            title: 'Turno',
+            options: ['Manhã', 'Noite'],
+          },
+        ],
+      })
+      .expect(201);
+    const form = created.body;
+    expect(form.questions[0]).toMatchObject({
+      type: 'single_choice',
+      options: ['Manhã', 'Noite'],
+    });
+
+    const respond = (choices: string[]) =>
+      request(app.getHttpServer())
+        .post(`/api/public/forms/${form.id}/responses`)
+        .send({
+          answers: [{ questionId: form.questions[0].id, choices, text: '' }],
+        });
+    const res = await respond([]).expect(400);
+    expect(res.body.message).toEqual(['Pergunta 1: Escolha uma opção.']);
+    await respond(['Noite']).expect(201);
+
+    const detail = await admin.get(`/api/forms/${form.id}`).expect(200);
+    expect(detail.body.responses[0].answers).toEqual([
+      { questionId: form.questions[0].id, choices: ['Noite'], text: '' },
+    ]);
+  });
+
   it('rejects an incomplete response (RN04, RN05)', async () => {
     const form = (await admin.post('/api/forms').send(NEW_FORM)).body;
     const [text, multiple, single] = form.questions;

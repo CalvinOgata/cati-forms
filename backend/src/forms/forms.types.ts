@@ -4,6 +4,7 @@
 export const QUESTION_TYPES = [
   'text',
   'multiple_choice',
+  'single_choice',
   'single_choice_justified',
 ] as const;
 
@@ -41,7 +42,7 @@ export interface FormSummary {
 /**
  * One answer per question. `choices` holds the selected options (exactly one
  * for single choice, none for text); `text` holds the written answer or, for
- * single choice, the justification.
+ * single choice with justification, the justification (empty otherwise).
  */
 export interface Answer {
   questionId: string;

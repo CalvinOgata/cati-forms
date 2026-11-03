@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { formatDateTime, plural } from '#lib/format.js';
-	import { QUESTION_TYPES } from '#lib/forms.js';
+	import { isSingleChoice, QUESTION_TYPES } from '#lib/forms.js';
 	import Icon from '#lib/Icon.svelte';
 	import type { PageProps } from './$types';
 
@@ -105,7 +105,7 @@
 				{#if question.options.length}
 					<ul class="options">
 						{#each question.options as option (option)}
-							<li class:round={question.type === 'single_choice_justified'}>{option}</li>
+							<li class:round={isSingleChoice(question.type)}>{option}</li>
 						{/each}
 					</ul>
 				{/if}
@@ -136,7 +136,9 @@
 								{answer?.choices.join(', ')}
 							{:else}
 								{answer?.choices[0]}
-								<span class="justification prewrap">{answer?.text}</span>
+								{#if question.type === 'single_choice_justified'}
+									<span class="justification prewrap">{answer?.text}</span>
+								{/if}
 							{/if}
 						</dd>
 					{/each}
