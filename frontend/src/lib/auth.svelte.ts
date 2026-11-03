@@ -1,3 +1,4 @@
+import { redirect } from '@sveltejs/kit';
 import { api, ApiError } from './api.js';
 
 /** What the API returns about a user. */
@@ -18,6 +19,15 @@ export async function getSession(): Promise<User | null> {
 		if (error instanceof ApiError && error.status === 401) return null;
 		throw error;
 	}
+}
+
+/**
+ * For page loads that need a login: a 401 means the session ended after the app
+ * opened (sessions live in the API's memory, so a restart ends them all). Sends
+ * the user to the login page instead of the error page.
+ */
+export function redirectIfLoggedOut(error: unknown): void {
+	if (error instanceof ApiError && error.status === 401) redirect(307, '/login');
 }
 
 export async function login(username: string, password: string): Promise<User> {

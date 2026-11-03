@@ -1,3 +1,4 @@
+import isEmail from 'validator/es/lib/isEmail';
 import { api } from './api.js';
 
 /*
@@ -87,12 +88,12 @@ export function validateNewForm(form: NewForm): FormErrors {
 	return errors;
 }
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 /** Errors keyed by question id, plus `email`. Every question is required (RN04, RN05). */
 export function validateResponse(form: Form, response: NewResponse): Record<string, string> {
 	const errors: Record<string, string> = {};
-	if (form.collectEmail && !EMAIL_PATTERN.test(response.email ?? '')) {
+	// The same check as the backend (class-validator's isEmail), so an address
+	// accepted here is never turned away after sending.
+	if (form.collectEmail && !isEmail(response.email ?? '')) {
 		errors.email = 'Informe um e-mail válido.';
 	}
 	for (const question of form.questions) {
