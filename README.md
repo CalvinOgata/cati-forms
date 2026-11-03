@@ -145,7 +145,8 @@ Há um único tipo de usuário, com acesso total (RN02). A sessão fica em um co
 `httpOnly` chamado `session`, e as senhas são guardadas apenas como hash scrypt com
 salt aleatório (RNF05). As contas ficam na tabela `users`; as sessões ficam na memória
 do backend, então reiniciá-lo desloga todo mundo (controles de segurança avançados não
-são prioridade nesta versão, RNF06).
+são prioridade nesta versão, RNF06). Quem estava com o app aberto é levado ao login na
+próxima página que abrir.
 
 | Rota | O que faz | Erros |
 | ---- | --------- | ----- |
@@ -174,6 +175,8 @@ o usuário logado fica em `req.user`.
 Todas as perguntas são obrigatórias (RN04), a justificativa também (RN05) e a múltipla
 escolha aceita qualquer quantidade de opções marcadas (RN06). Um formulário não pode ser
 editado nem excluído depois de criado (RN07), então a criação pede confirmação.
+A página de resposta confere tudo antes de enviar, com as mesmas regras do backend; o
+e-mail usa o mesmo validador (`isEmail` do pacote `validator`) nos dois lados.
 
 | Rota | Login | O que faz | Erros |
 | ---- | ----- | --------- | ----- |
