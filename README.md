@@ -112,10 +112,11 @@ cati-forms/
 │   │   ├── auth/         # cadastro, login, logout e sessão (AuthGuard)
 │   │   ├── users/        # usuários (no banco) e hash de senha (scrypt)
 │   │   ├── prisma/       # PrismaService (conexão com o banco) e geração de ids
-│   │   ├── forms/        # formulários, perguntas, respostas e suas regras
+│   │   ├── forms/        # formulários, perguntas, respostas, suas regras e exportação
 │   │   ├── health/       # GET /api/health
 │   │   └── generated/    # Prisma Client, gerado do schema (fora do git)
 │   ├── test/             # testes e2e
+│   ├── assets/fonts/     # fonte DejaVu Sans, usada no PDF (licença em LICENSE)
 │   ├── scripts/dev.mjs   # modo dev: tsc --watch + node --watch
 │   └── .env.example
 └── frontend/             # SPA SvelteKit
@@ -169,7 +170,7 @@ o usuário logado fica em `req.user`.
 | ------ | --------- |
 | `/` | Lista todos os formulários, de qualquer usuário (RN10) |
 | `/forms/new` | Cria um formulário com título, descrição, pedido de e-mail opcional (RF07) e perguntas discursivas, de múltipla escolha, de escolha única e de escolha única com justificativa (RF03–RF06) |
-| `/forms/:id` | Mostra o link de resposta (RF08), as perguntas e as respostas recebidas |
+| `/forms/:id` | Mostra o link de resposta (RF08), as perguntas e as respostas recebidas, que podem ser exportadas em CSV e PDF (RF15, RF16) |
 | `/f/:id` | Página pública de resposta, sem login (RF09, RN09) |
 
 Todas as perguntas são obrigatórias (RN04), a justificativa também (RN05) e a múltipla
@@ -185,6 +186,8 @@ e-mail usa o mesmo validador (`isEmail` do pacote `validator`) nos dois lados.
 | `GET /api/forms` | sim | Lista os formulários, do mais novo ao mais antigo, com o total de perguntas e respostas | `401` |
 | `POST /api/forms` | sim | Cria um formulário (`201`) | `400` dados inválidos, `401` |
 | `GET /api/forms/:id` | sim | O formulário com todas as respostas (RN10) | `401`, `404` |
+| `GET /api/forms/:id/export.csv` | sim | As respostas em CSV, para baixar (RF15) | `401`, `404` |
+| `GET /api/forms/:id/export.pdf` | sim | As respostas em PDF, para baixar (RF16) | `401`, `404` |
 | `GET /api/public/forms/:id` | não | O formulário para responder, sem as respostas | `404` |
 | `POST /api/public/forms/:id/responses` | não | Envia uma resposta (`201`) | `400` pergunta sem resposta, `404` |
 
@@ -197,6 +200,27 @@ Formulários, perguntas, respostas e as respostas de cada pergunta são guardado
 tabelas separadas, ligadas por chaves estrangeiras (RF12, RF13, RNF08). As consultas
 ficam em `backend/src/forms/forms.repository.ts`; um formulário e suas perguntas, assim
 como uma resposta e as respostas de cada pergunta, são gravados juntos ou nada é gravado.
+
+### Exportação
+
+Na aba **Respostas** de um formulário, os botões **Exportar CSV** e **Exportar PDF**
+baixam todas as respostas, da mais antiga à mais nova (RF15, RF16, RN11). Os arquivos
+são gerados no backend (`backend/src/forms/forms.csv.ts` e `forms.pdf.ts`) e se chamam
+`respostas-<título-do-formulário>.csv` ou `.pdf`. Datas e horas saem no horário de
+Brasília (`America/Sao_Paulo`), seja qual for o fuso do servidor.
+
+- **CSV:** uma linha por resposta e uma coluna por pergunta, depois das colunas
+  `Enviada em` (`2026-11-03 15:08:37`) e `E-mail` (só se o formulário pede). A escolha
+  única com justificativa ocupa duas colunas, a opção e a justificativa; na múltipla
+  escolha, as opções marcadas vêm separadas por `; `. Segue o RFC 4180 (vírgulas, CRLF,
+  todas as células entre aspas), em UTF-8 com BOM para o Excel mostrar os acentos.
+  Respostas que começam com `=`, `+`, `-` ou `@` ganham um `'` na frente, para a
+  planilha não executá-las como fórmula.
+- **PDF:** A4, gerado com o [pdfkit](https://pdfkit.org): título, descrição e autor do
+  formulário, depois cada resposta com todas as perguntas, e o número da página no
+  rodapé. Usa a fonte DejaVu Sans (`backend/assets/fonts/`), que cobre latim, grego,
+  cirílico, setas, símbolos e alguns emojis; um caractere que ela não tem (chinês, por
+  exemplo) aparece como `�`, e o CSV mantém o texto original.
 
 ## Banco de dados
 
