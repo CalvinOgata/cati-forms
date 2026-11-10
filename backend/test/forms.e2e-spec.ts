@@ -39,6 +39,8 @@ describe('Forms (e2e)', () => {
     await request(server).get('/api/forms').expect(401);
     await request(server).get('/api/forms/x').expect(401);
     await request(server).post('/api/forms').send(NEW_FORM).expect(401);
+    await request(server).get('/api/forms/x/export.csv').expect(401);
+    await request(server).get('/api/forms/x/export.pdf').expect(401);
   });
 
   it('creates, shares, answers and reads a form (RF03–RF09, RN10)', async () => {
@@ -250,6 +252,58 @@ describe('Forms (e2e)', () => {
       .send({ answers: [] })
       .expect(404);
     await admin.get('/api/forms/nao-existe').expect(404);
+    await admin.get('/api/forms/nao-existe/export.csv').expect(404);
+    await admin.get('/api/forms/nao-existe/export.pdf').expect(404);
+  });
+
+  it('exports the responses as CSV and PDF (RF15, RF16)', async () => {
+    const form = (await admin.post('/api/forms').send(NEW_FORM)).body;
+    const [text, multiple, single] = form.questions;
+    await request(app.getHttpServer())
+      .post(`/api/public/forms/${form.id}/responses`)
+      .send({
+        email: 'joao@example.com',
+        answers: [
+          { questionId: text.id, choices: [], text: 'Um app.' },
+          { questionId: multiple.id, choices: ['Go', 'TS'], text: '' },
+          { questionId: single.id, choices: ['Back'], text: 'APIs.' },
+        ],
+      })
+      .expect(201);
+
+    const csv = await admin
+      .get(`/api/forms/${form.id}/export.csv`)
+      .expect(200)
+      .expect('Content-Type', 'text/csv; charset=utf-8')
+      .expect(
+        'Content-Disposition',
+        'attachment; filename="respostas-pesquisa-de-stack.csv"',
+      )
+      .expect('Cache-Control', 'no-store');
+    const [header, row] = csv.text.replace(/^\uFEFF/, '').split('\r\n');
+    expect(header).toBe(
+      '"Enviada em","E-mail","Conte sobre um projeto.","Linguagens",' +
+        '"Front ou back?","Front ou back? (justificativa)"',
+    );
+    expect(row).toMatch(
+      /^"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d","joao@example.com","Um app.","Go; TS","Back","APIs."$/,
+    );
+
+    const pdf = await admin
+      .get(`/api/forms/${form.id}/export.pdf`)
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => done(null, Buffer.concat(chunks)));
+      })
+      .expect(200)
+      .expect('Content-Type', 'application/pdf')
+      .expect(
+        'Content-Disposition',
+        'attachment; filename="respostas-pesquisa-de-stack.pdf"',
+      );
+    expect((pdf.body as Buffer).subarray(0, 5).toString()).toBe('%PDF-');
   });
 
   it('has no way to edit or delete a form (RN07)', async () => {

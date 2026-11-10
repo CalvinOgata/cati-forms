@@ -7,7 +7,8 @@
 		down: 'M12 5v14M19 12l-7 7-7-7',
 		copy: 'M9 9h11v11H9zM5 15H4V4h11v1',
 		trash: 'M3 6h18M8 6V3h8v3M19 6l-1 15H6L5 6',
-		external: 'M15 3h6v6M10 14 21 3M21 14v7H3V3h7'
+		external: 'M15 3h6v6M10 14 21 3M21 14v7H3V3h7',
+		download: 'M12 3v12M7 10l5 5 5-5M4 21h16'
 	};
 
 	export type IconName = keyof typeof paths;

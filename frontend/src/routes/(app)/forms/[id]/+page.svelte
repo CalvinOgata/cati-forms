@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { ApiError } from '#lib/api.js';
+	import { saveFile } from '#lib/dom.js';
 	import { formatDateTime, plural } from '#lib/format.js';
-	import { isSingleChoice, QUESTION_TYPES } from '#lib/forms.js';
+	import { exportResponses, isSingleChoice, QUESTION_TYPES } from '#lib/forms.js';
 	import Icon from '#lib/Icon.svelte';
 	import type { PageProps } from './$types';
 
@@ -27,6 +30,25 @@
 		} catch {
 			// No clipboard access (e.g. plain http): select it so the user can copy.
 			linkInput.select();
+		}
+	}
+
+	let exporting = $state<'csv' | 'pdf' | null>(null);
+	let exportError = $state<string | null>(null);
+
+	/** Downloads the responses as CSV (RF15) or PDF (RF16). */
+	async function exportAs(format: 'csv' | 'pdf') {
+		exporting = format;
+		exportError = null;
+		try {
+			const { blob, filename } = await exportResponses(form.id, format);
+			saveFile(blob, filename);
+		} catch (e) {
+			// The session ended while the page was open: log in again.
+			if (e instanceof ApiError && e.status === 401) return goto('/login');
+			exportError = e instanceof ApiError ? e.message : 'Não foi possível gerar o arquivo.';
+		} finally {
+			exporting = null;
 		}
 	}
 
@@ -115,6 +137,25 @@
 {:else if responses.length === 0}
 	<p class="panel empty">Nenhuma resposta ainda. Compartilhe o link para começar a receber.</p>
 {:else}
+	<div class="exports">
+		<span class="muted">Baixar as respostas, da mais antiga à mais nova</span>
+		<div class="export-buttons">
+			{#each ['csv', 'pdf'] as const as format (format)}
+				<button
+					type="button"
+					class="secondary"
+					disabled={exporting !== null}
+					onclick={() => exportAs(format)}
+				>
+					<Icon name="download" />
+					{exporting === format ? 'Gerando…' : `Exportar ${format.toUpperCase()}`}
+				</button>
+			{/each}
+		</div>
+	</div>
+	{#if exportError}
+		<p class="error" role="alert">{exportError}</p>
+	{/if}
 	<ol class="list">
 		{#each responses as response (response.id)}
 			<li class="panel">
@@ -223,6 +264,18 @@
 	}
 	.empty {
 		text-align: center;
+	}
+	.exports {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem 1rem;
+	}
+	.export-buttons {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
 	}
 	.response-head {
 		display: flex;

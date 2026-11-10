@@ -1,5 +1,5 @@
 import isEmail from 'validator/es/lib/isEmail';
-import { api } from './api.js';
+import { api, apiFile } from './api.js';
 
 /*
  * Forms client: types, validation and calls to /api/forms. The backend applies
@@ -139,6 +139,11 @@ export function listForms(): Promise<FormSummary[]> {
 /** GET /api/forms/:id: the form with its responses, for logged-in users. */
 export function getForm(id: string): Promise<FormDetail> {
 	return api(`/forms/${encodeURIComponent(id)}`);
+}
+
+/** GET /api/forms/:id/export.csv or .pdf: the responses as a file (RF15, RF16). */
+export function exportResponses(id: string, format: 'csv' | 'pdf') {
+	return apiFile(`/forms/${encodeURIComponent(id)}/export.${format}`);
 }
 
 /** GET /api/public/forms/:id: what someone with the link sees, no login needed (RN09). */

@@ -10,6 +10,22 @@ export class ApiError extends Error {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+	const res = await send(path, init);
+	if (res.status === 204) {
+		return undefined as T;
+	}
+	return res.json() as Promise<T>;
+}
+
+/** Downloads a file: its contents and the name the API suggests for it. */
+export async function apiFile(path: string): Promise<{ blob: Blob; filename: string }> {
+	const res = await send(path);
+	const disposition = res.headers.get('Content-Disposition') ?? '';
+	const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? 'download';
+	return { blob: await res.blob(), filename };
+}
+
+async function send(path: string, init?: RequestInit): Promise<Response> {
 	const res = await fetch(`${API_BASE}${path}`, {
 		...init,
 		headers: { 'Content-Type': 'application/json', ...init?.headers }
@@ -17,10 +33,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 	if (!res.ok) {
 		throw new ApiError(res.status, await errorMessage(res));
 	}
-	if (res.status === 204) {
-		return undefined as T;
-	}
-	return res.json() as Promise<T>;
+	return res;
 }
 
 /** NestJS errors carry `message` as a string or, for validation, a list of strings. */

@@ -2,14 +2,19 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Param,
   Post,
   Req,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard.js';
 import type { AuthenticatedRequest } from '../auth/session.js';
+import { responsesCsv } from './forms.csv.js';
 import { CreateFormDto } from './forms.dto.js';
+import { exportFileName } from './forms.export.js';
+import { responsesPdf } from './forms.pdf.js';
 import { FormsService } from './forms.service.js';
 import type { Form, FormDetail, FormSummary } from './forms.types.js';
 
@@ -32,6 +37,28 @@ export class FormsController {
   @Get(':id')
   detail(@Param('id') id: string): Promise<FormDetail> {
     return this.forms.detail(id);
+  }
+
+  /** GET /api/forms/:id/export.csv: the responses as a spreadsheet (RF15). */
+  @Get(':id/export.csv')
+  @Header('Cache-Control', 'no-store')
+  async exportCsv(@Param('id') id: string): Promise<StreamableFile> {
+    const form = await this.forms.detail(id);
+    return new StreamableFile(Buffer.from(responsesCsv(form)), {
+      type: 'text/csv; charset=utf-8',
+      disposition: `attachment; filename="${exportFileName(form, 'csv')}"`,
+    });
+  }
+
+  /** GET /api/forms/:id/export.pdf: the responses as a document (RF16). */
+  @Get(':id/export.pdf')
+  @Header('Cache-Control', 'no-store')
+  async exportPdf(@Param('id') id: string): Promise<StreamableFile> {
+    const form = await this.forms.detail(id);
+    return new StreamableFile(await responsesPdf(form), {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${exportFileName(form, 'pdf')}"`,
+    });
   }
 
   /** POST /api/forms: creates a form owned by the logged-in user. */
