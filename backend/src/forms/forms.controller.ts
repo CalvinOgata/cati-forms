@@ -5,6 +5,7 @@ import {
   Header,
   Param,
   Post,
+  Query,
   Req,
   StreamableFile,
   UseGuards,
@@ -12,8 +13,9 @@ import {
 import { AuthGuard } from '../auth/auth.guard.js';
 import type { AuthenticatedRequest } from '../auth/session.js';
 import { responsesCsv } from './forms.csv.js';
-import { CreateFormDto } from './forms.dto.js';
+import { CreateFormDto, ExportQueryDto } from './forms.dto.js';
 import { exportFileName } from './forms.export.js';
+import { responseView } from './forms.organize.js';
 import { responsesPdf } from './forms.pdf.js';
 import { FormsService } from './forms.service.js';
 import type { Form, FormDetail, FormSummary } from './forms.types.js';
@@ -39,23 +41,34 @@ export class FormsController {
     return this.forms.detail(id);
   }
 
-  /** GET /api/forms/:id/export.csv: the responses as a spreadsheet (RF15). */
+  /**
+   * GET /api/forms/:id/export.csv: the responses as a spreadsheet (RF15),
+   * organized as the query asks (RN11, see ExportQueryDto).
+   */
   @Get(':id/export.csv')
   @Header('Cache-Control', 'no-store')
-  async exportCsv(@Param('id') id: string): Promise<StreamableFile> {
+  async exportCsv(
+    @Param('id') id: string,
+    @Query() query: ExportQueryDto,
+  ): Promise<StreamableFile> {
     const form = await this.forms.detail(id);
-    return new StreamableFile(Buffer.from(responsesCsv(form)), {
+    const view = responseView(form, query);
+    return new StreamableFile(Buffer.from(responsesCsv(form, view)), {
       type: 'text/csv; charset=utf-8',
       disposition: `attachment; filename="${exportFileName(form, 'csv')}"`,
     });
   }
 
-  /** GET /api/forms/:id/export.pdf: the responses as a document (RF16). */
+  /** GET /api/forms/:id/export.pdf: the same, as a document (RF16). */
   @Get(':id/export.pdf')
   @Header('Cache-Control', 'no-store')
-  async exportPdf(@Param('id') id: string): Promise<StreamableFile> {
+  async exportPdf(
+    @Param('id') id: string,
+    @Query() query: ExportQueryDto,
+  ): Promise<StreamableFile> {
     const form = await this.forms.detail(id);
-    return new StreamableFile(await responsesPdf(form), {
+    const view = responseView(form, query);
+    return new StreamableFile(await responsesPdf(form, view), {
       type: 'application/pdf',
       disposition: `attachment; filename="${exportFileName(form, 'pdf')}"`,
     });

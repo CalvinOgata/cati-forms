@@ -282,11 +282,11 @@ describe('Forms (e2e)', () => {
       .expect('Cache-Control', 'no-store');
     const [header, row] = csv.text.replace(/^\uFEFF/, '').split('\r\n');
     expect(header).toBe(
-      '"Enviada em","E-mail","Conte sobre um projeto.","Linguagens",' +
+      '"Nº","Enviada em","E-mail","Conte sobre um projeto.","Linguagens",' +
         '"Front ou back?","Front ou back? (justificativa)"',
     );
     expect(row).toMatch(
-      /^"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d","joao@example.com","Um app.","Go; TS","Back","APIs."$/,
+      /^"1","\d{4}-\d\d-\d\d \d\d:\d\d:\d\d","joao@example.com","Um app.","Go; TS","Back","APIs."$/,
     );
 
     const pdf = await admin
@@ -304,6 +304,66 @@ describe('Forms (e2e)', () => {
         'attachment; filename="respostas-pesquisa-de-stack.pdf"',
       );
     expect((pdf.body as Buffer).subarray(0, 5).toString()).toBe('%PDF-');
+  });
+
+  it('exports the responses organized as the page shows them (RN11)', async () => {
+    const form = (await admin.post('/api/forms').send(NEW_FORM)).body;
+    const [text, multiple, single] = form.questions;
+    for (const [email, languages] of [
+      ['ana@example.com', ['Go']],
+      ['bia@example.com', ['TS']],
+      ['caio@example.com', ['Go', 'TS']],
+    ] as const) {
+      await request(app.getHttpServer())
+        .post(`/api/public/forms/${form.id}/responses`)
+        .send({
+          email,
+          answers: [
+            { questionId: text.id, choices: [], text: 'Um app.' },
+            { questionId: multiple.id, choices: languages, text: '' },
+            { questionId: single.id, choices: ['Back'], text: 'APIs.' },
+          ],
+        })
+        .expect(201);
+    }
+    const rows = async (query: Record<string, string>) => {
+      const csv = await admin
+        .get(`/api/forms/${form.id}/export.csv`)
+        .query(query)
+        .expect(200);
+      return csv.text
+        .split('\r\n')
+        .slice(1, -1)
+        .map((row) => row.split(',')[0] + ' ' + row.split(',')[2]);
+    };
+
+    expect(await rows({})).toEqual([
+      '"1" "ana@example.com"',
+      '"2" "bia@example.com"',
+      '"3" "caio@example.com"',
+    ]);
+    expect(
+      await rows({ order: 'newest', question: multiple.id, option: 'Go' }),
+    ).toEqual(['"3" "caio@example.com"', '"1" "ana@example.com"']);
+    expect(await rows({ q: 'BIA' })).toEqual(['"2" "bia@example.com"']);
+    await admin
+      .get(`/api/forms/${form.id}/export.pdf`)
+      .query({ order: 'newest', q: 'ana' })
+      .expect(200)
+      .expect('Content-Type', 'application/pdf');
+
+    for (const query of [
+      { order: 'random' },
+      { question: multiple.id },
+      { question: multiple.id, option: 'Rust' },
+      { question: text.id, option: 'Go' },
+      { extra: '1' },
+    ]) {
+      await admin
+        .get(`/api/forms/${form.id}/export.csv`)
+        .query(query)
+        .expect(400);
+    }
   });
 
   it('has no way to edit or delete a form (RN07)', async () => {

@@ -8,6 +8,11 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
+import {
+  RESPONSE_ORDERS,
+  type ResponseOrder,
+  type ResponseQuery,
+} from './forms.organize.js';
 import { QUESTION_TYPES, type QuestionType } from './forms.types.js';
 
 // The DTOs only check the shape of the body. The form rules (required fields,
@@ -76,4 +81,28 @@ export class SubmitResponseDto {
   @ValidateNested({ each: true })
   @Type(() => AnswerDto)
   answers: AnswerDto[];
+}
+
+/**
+ * Query of GET /api/forms/:id/export.csv and .pdf: how to organize the
+ * responses (RN11). Without it, every response, oldest first.
+ */
+export class ExportQueryDto implements ResponseQuery {
+  @IsOptional()
+  @IsIn(RESPONSE_ORDERS, { message: 'Ordem inválida.' })
+  order?: ResponseOrder;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200, { message: 'A busca pode ter até 200 caracteres.' })
+  q?: string;
+
+  /** With `option`: only the responses that chose it in this question. */
+  @IsOptional()
+  @IsString()
+  question?: string;
+
+  @IsOptional()
+  @IsString()
+  option?: string;
 }

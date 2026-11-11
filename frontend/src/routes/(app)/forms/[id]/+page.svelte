@@ -4,7 +4,13 @@
 	import { ApiError } from '#lib/api.js';
 	import { saveFile } from '#lib/dom.js';
 	import { formatDateTime, plural } from '#lib/format.js';
-	import { exportResponses, isSingleChoice, QUESTION_TYPES } from '#lib/forms.js';
+	import {
+		exportResponses,
+		isSingleChoice,
+		organizeResponses,
+		QUESTION_TYPES,
+		type ResponseView
+	} from '#lib/forms.js';
 	import Icon from '#lib/Icon.svelte';
 	import type { PageProps } from './$types';
 
@@ -13,10 +19,29 @@
 	const form = $derived(data.form);
 	/** The public answer page (RF08). */
 	const link = $derived(`${page.url.origin}/f/${form.id}`);
-	/** Newest first, numbered in the order they arrived. */
-	const responses = $derived(
-		form.responses.map((response, i) => ({ ...response, number: i + 1 })).toReversed()
-	);
+
+	// How the responses tab is organized (RN11); the exports follow it.
+	let order = $state<ResponseView['order']>('newest');
+	let search = $state('');
+	/** "<question index>:<option index>", or empty for every response. */
+	let choiceKey = $state('');
+
+	const view = $derived<ResponseView>({ order, search, choice: choiceFrom(choiceKey) });
+	const responses = $derived(organizeResponses(form, view));
+	const filtered = $derived(search.trim() !== '' || choiceKey !== '');
+	const hasChoices = $derived(form.questions.some((q) => q.type !== 'text'));
+
+	function choiceFrom(key: string): ResponseView['choice'] {
+		if (!key) return null;
+		const [q, o] = key.split(':').map(Number);
+		const question = form.questions[q];
+		return { questionId: question.id, option: question.options[o] };
+	}
+
+	function clearFilters() {
+		search = '';
+		choiceKey = '';
+	}
 
 	let tab = $state<'questions' | 'responses'>('questions');
 	let copied = $state(false);
@@ -41,7 +66,7 @@
 		exporting = format;
 		exportError = null;
 		try {
-			const { blob, filename } = await exportResponses(form.id, format);
+			const { blob, filename } = await exportResponses(form.id, format, view);
 			saveFile(blob, filename);
 		} catch (e) {
 			// The session ended while the page was open: log in again.
@@ -134,27 +159,73 @@
 			</li>
 		{/each}
 	</ol>
-{:else if responses.length === 0}
+{:else if form.responses.length === 0}
 	<p class="panel empty">Nenhuma resposta ainda. Compartilhe o link para começar a receber.</p>
 {:else}
-	<div class="exports">
-		<span class="muted">Baixar as respostas, da mais antiga à mais nova</span>
-		<div class="export-buttons">
-			{#each ['csv', 'pdf'] as const as format (format)}
-				<button
-					type="button"
-					class="secondary"
-					disabled={exporting !== null}
-					onclick={() => exportAs(format)}
-				>
-					<Icon name="download" />
-					{exporting === format ? 'Gerando…' : `Exportar ${format.toUpperCase()}`}
-				</button>
-			{/each}
+	<section class="panel" aria-label="Organizar e exportar as respostas">
+		<div class="filters">
+			<label class="search">
+				Buscar
+				<input type="search" bind:value={search} placeholder="Texto, opção ou e-mail" />
+			</label>
+			{#if hasChoices}
+				<label>
+					Opção escolhida
+					<select bind:value={choiceKey}>
+						<option value="">Todas as respostas</option>
+						{#each form.questions as question, q (question.id)}
+							{#if question.type !== 'text'}
+								<optgroup label={question.title}>
+									{#each question.options as option, o (option)}
+										<option value="{q}:{o}">{option}</option>
+									{/each}
+								</optgroup>
+							{/if}
+						{/each}
+					</select>
+				</label>
+			{/if}
+			<label>
+				Ordem
+				<select bind:value={order}>
+					<option value="newest">Mais recentes primeiro</option>
+					<option value="oldest">Mais antigas primeiro</option>
+				</select>
+			</label>
 		</div>
-	</div>
-	{#if exportError}
-		<p class="error" role="alert">{exportError}</p>
+		<div class="exports">
+			<p class="muted">
+				<span role="status">
+					{filtered ? `${responses.length} de ` : ''}{plural(
+						form.responses.length,
+						'resposta',
+						'respostas'
+					)}
+				</span>
+				{#if filtered}
+					· <button type="button" class="link" onclick={clearFilters}>Limpar filtros</button>
+				{/if}
+			</p>
+			<div class="export-buttons">
+				{#each ['csv', 'pdf'] as const as format (format)}
+					<button
+						type="button"
+						class="secondary"
+						disabled={exporting !== null || responses.length === 0}
+						onclick={() => exportAs(format)}
+					>
+						<Icon name="download" />
+						{exporting === format ? 'Gerando…' : `Exportar ${format.toUpperCase()}`}
+					</button>
+				{/each}
+			</div>
+		</div>
+		{#if exportError}
+			<p class="error" role="alert">{exportError}</p>
+		{/if}
+	</section>
+	{#if responses.length === 0}
+		<p class="panel empty">Nenhuma resposta corresponde aos filtros.</p>
 	{/if}
 	<ol class="list">
 		{#each responses as response (response.id)}
@@ -264,6 +335,25 @@
 	}
 	.empty {
 		text-align: center;
+	}
+	.filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+	.filters label {
+		flex: 1 1 11rem;
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.filters .search {
+		flex: 2 1 15rem;
+	}
+	.link {
+		padding: 0;
+		font-weight: 500;
+		color: var(--accent);
+		background: none;
+		text-decoration: underline;
 	}
 	.exports {
 		display: flex;

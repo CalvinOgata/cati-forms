@@ -2,12 +2,15 @@ import { readFileSync } from 'node:fs';
 import { create, type Font } from 'fontkit';
 import PDFDocument from 'pdfkit';
 import { answerTo, formatDateTime } from './forms.export.js';
-import type {
-  Answer,
-  FormDetail,
-  FormResponse,
-  Question,
-} from './forms.types.js';
+import {
+  ALL_RESPONSES,
+  describeView,
+  isFiltered,
+  organizeResponses,
+  type NumberedResponse,
+  type ResponseView,
+} from './forms.organize.js';
+import type { Answer, FormDetail, Question } from './forms.types.js';
 
 // The PDF's built-in fonts only cover Latin-1, and respondents type anything.
 // DejaVu Sans also covers Greek, Cyrillic, arrows, symbols and some emoji (see
@@ -26,10 +29,13 @@ type Doc = PDFKit.PDFDocument;
 
 /**
  * The responses as a PDF (RF16): the form's title and details, then each
- * response, oldest first, with every question and its answer, and page numbers
- * at the bottom.
+ * response, ordered and filtered as the view says (RN11), with every question
+ * and its answer, and page numbers at the bottom.
  */
-export function responsesPdf(form: FormDetail): Promise<Buffer> {
+export function responsesPdf(
+  form: FormDetail,
+  view: ResponseView = ALL_RESPONSES,
+): Promise<Buffer> {
   const doc = new PDFDocument({
     size: 'A4',
     margin: MARGIN,
@@ -44,15 +50,18 @@ export function responsesPdf(form: FormDetail): Promise<Buffer> {
   doc.registerFont('regular', REGULAR);
   doc.registerFont('bold', BOLD);
   const pdf = collect(doc);
+  const responses = organizeResponses(form, view);
 
-  heading(doc, form);
-  if (form.responses.length === 0) {
+  heading(doc, form, view, responses.length);
+  if (responses.length === 0) {
     doc.font('regular').fontSize(11).fillColor(MUTED);
-    doc.text('Nenhuma resposta ainda.');
+    doc.text(
+      isFiltered(view)
+        ? 'Nenhuma resposta corresponde aos filtros.'
+        : 'Nenhuma resposta ainda.',
+    );
   }
-  form.responses.forEach((response, index) => {
-    responseBlock(doc, form, response, index + 1);
-  });
+  for (const response of responses) responseBlock(doc, form, response);
   pageNumbers(doc);
 
   doc.end();
@@ -68,30 +77,37 @@ function collect(doc: Doc): Promise<Buffer> {
   });
 }
 
-function heading(doc: Doc, form: FormDetail): void {
+function heading(
+  doc: Doc,
+  form: FormDetail,
+  view: ResponseView,
+  shown: number,
+): void {
   doc.font('bold').fontSize(18).fillColor(TEXT).text(printable(form.title));
   if (form.description) {
     doc.moveDown(0.3).font('regular').fontSize(10.5);
     doc.text(printable(form.description));
   }
-  const count = form.responses.length;
+  const total = form.responses.length;
+  const count = isFiltered(view) ? `${shown} de ${total}` : `${total}`;
   doc.moveDown(0.5).font('regular').fontSize(9).fillColor(MUTED);
   doc.text(
     `Criado por ${printable(form.createdBy)} em ${formatDateTime(form.createdAt)} · ` +
-      `${count} ${count === 1 ? 'resposta' : 'respostas'} · ` +
+      `${count} ${total === 1 ? 'resposta' : 'respostas'} · ` +
       `exportado em ${formatDateTime(new Date().toISOString())}`,
   );
+  doc.text(printable(describeView(form, view)));
   rule(doc);
 }
 
 function responseBlock(
   doc: Doc,
   form: FormDetail,
-  response: FormResponse,
-  number: number,
+  response: NumberedResponse,
 ): void {
   keepTogether(doc, 90);
-  doc.font('bold').fontSize(12).fillColor(TEXT).text(`Resposta ${number}`);
+  doc.font('bold').fontSize(12).fillColor(TEXT);
+  doc.text(`Resposta ${response.number}`);
   doc.font('regular').fontSize(9).fillColor(MUTED);
   doc.text(
     [formatDateTime(response.submittedAt), response.email]

@@ -1,16 +1,25 @@
 import { answerTo, sortableDateTime } from './forms.export.js';
+import {
+  ALL_RESPONSES,
+  organizeResponses,
+  type ResponseView,
+} from './forms.organize.js';
 import type { FormDetail } from './forms.types.js';
 
 /**
- * The responses as CSV (RF15): one row per response, oldest first, and one
- * column per question. Single choice with justification takes two columns, the
+ * The responses as CSV (RF15): one row per response, ordered and filtered as
+ * the view says (RN11), and one column per question. Single choice with justification takes two columns, the
  * option and the justification; checked options are joined with "; ".
  *
  * RFC 4180 (commas, CRLF, every cell quoted), with a BOM so Excel reads the
  * file as UTF-8 and keeps the accents.
  */
-export function responsesCsv(form: FormDetail): string {
+export function responsesCsv(
+  form: FormDetail,
+  view: ResponseView = ALL_RESPONSES,
+): string {
   const header = [
+    'Nº',
     'Enviada em',
     ...(form.collectEmail ? ['E-mail'] : []),
     ...form.questions.flatMap((q) =>
@@ -19,7 +28,8 @@ export function responsesCsv(form: FormDetail): string {
         : [q.title],
     ),
   ];
-  const rows = form.responses.map((response) => [
+  const rows = organizeResponses(form, view).map((response) => [
+    String(response.number),
     sortableDateTime(response.submittedAt),
     ...(form.collectEmail ? [response.email ?? ''] : []),
     ...form.questions.flatMap((question) => {

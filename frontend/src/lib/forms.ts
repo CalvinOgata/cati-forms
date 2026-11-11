@@ -131,6 +131,50 @@ function answerError(question: Question, answer: Answer | undefined): string | n
 	}
 }
 
+/*
+ * Organizing the responses (RN11). The export routes apply the same rules
+ * (backend/src/forms/forms.organize.ts), so a file has what the page shows.
+ */
+
+export type ResponseView = {
+	order: 'newest' | 'oldest';
+	/** Text to look for in the answers and the e-mail; empty for every response. */
+	search: string;
+	/** Only the responses that chose this option. */
+	choice: { questionId: string; option: string } | null;
+};
+
+/** Numbered in the order it arrived, whatever the order or filter. */
+export type NumberedResponse = FormResponse & { number: number };
+
+export function organizeResponses(form: FormDetail, view: ResponseView): NumberedResponse[] {
+	const search = fold(view.search.trim());
+	const { choice } = view;
+	const responses = form.responses
+		.map((response, i) => ({ ...response, number: i + 1 }))
+		.filter((response) => !search || searchText(response).includes(search))
+		.filter(
+			(response) =>
+				!choice ||
+				response.answers.some(
+					(a) => a.questionId === choice.questionId && a.choices.includes(choice.option)
+				)
+		);
+	return view.order === 'newest' ? responses.toReversed() : responses;
+}
+
+/** The e-mail and every answer, folded for searching. */
+function searchText(response: FormResponse): string {
+	const fields = response.answers.flatMap((a) => [...a.choices, a.text]);
+	// One field per line, so a search can't match across two of them.
+	return fold([response.email ?? '', ...fields].join('\n'));
+}
+
+/** Ignores case and accents: "acao" finds "Ação". */
+function fold(text: string): string {
+	return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+}
+
 /** GET /api/forms: every form, newest first (RN02, RN10). */
 export function listForms(): Promise<FormSummary[]> {
 	return api('/forms');
@@ -141,9 +185,18 @@ export function getForm(id: string): Promise<FormDetail> {
 	return api(`/forms/${encodeURIComponent(id)}`);
 }
 
-/** GET /api/forms/:id/export.csv or .pdf: the responses as a file (RF15, RF16). */
-export function exportResponses(id: string, format: 'csv' | 'pdf') {
-	return apiFile(`/forms/${encodeURIComponent(id)}/export.${format}`);
+/**
+ * GET /api/forms/:id/export.csv or .pdf: the responses as a file (RF15, RF16),
+ * organized as on the page (RN11).
+ */
+export function exportResponses(id: string, format: 'csv' | 'pdf', view: ResponseView) {
+	const query = new URLSearchParams({ order: view.order });
+	if (view.search.trim()) query.set('q', view.search.trim());
+	if (view.choice) {
+		query.set('question', view.choice.questionId);
+		query.set('option', view.choice.option);
+	}
+	return apiFile(`/forms/${encodeURIComponent(id)}/export.${format}?${query}`);
 }
 
 /** GET /api/public/forms/:id: what someone with the link sees, no login needed (RN09). */

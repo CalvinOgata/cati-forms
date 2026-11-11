@@ -1,4 +1,5 @@
 import { responsesCsv } from './forms.csv.js';
+import { ALL_RESPONSES, type ResponseView } from './forms.organize.js';
 import type { FormDetail } from './forms.types.js';
 
 const FORM: FormDetail = {
@@ -46,9 +47,9 @@ describe('responsesCsv (RF15)', () => {
     expect(csv.startsWith('﻿')).toBe(true);
     expect(csv.endsWith('\r\n')).toBe(true);
     expect(csv.slice(1).split('\r\n')).toEqual([
-      '"Enviada em","E-mail","Conte ""algo""","Linguagens","Turno",' +
+      '"Nº","Enviada em","E-mail","Conte ""algo""","Linguagens","Turno",' +
         '"Front ou back?","Front ou back? (justificativa)"',
-      '"2026-11-03 15:08:37","joao@example.com","Linha 1\nLinha 2",' +
+      '"1","2026-11-03 15:08:37","joao@example.com","Linha 1\nLinha 2",' +
         '"Go; C, C++","Manhã","Back","Gosto de APIs."',
       '',
     ]);
@@ -58,7 +59,7 @@ describe('responsesCsv (RF15)', () => {
     const [header, row] = responsesCsv({ ...FORM, collectEmail: false })
       .slice(1)
       .split('\r\n');
-    expect(header.startsWith('"Enviada em","Conte')).toBe(true);
+    expect(header.startsWith('"Nº","Enviada em","Conte')).toBe(true);
     expect(row).not.toContain('joao@example.com');
   });
 
@@ -79,6 +80,35 @@ describe('responsesCsv (RF15)', () => {
     });
     expect(csv).toContain(`"'=HYPERLINK(""x"")"`);
     expect(csv).toContain(`"'@soma"`);
+  });
+
+  it('follows the order and filter, keeping each response number (RN11)', () => {
+    const second = {
+      ...FORM.responses[0],
+      id: 'r2',
+      email: 'maria@example.com',
+      submittedAt: '2026-11-04T18:00:00.000Z',
+    };
+    const firstCells = (view: Partial<ResponseView>) =>
+      responsesCsv(
+        { ...FORM, responses: [FORM.responses[0], second] },
+        { ...ALL_RESPONSES, ...view },
+      )
+        .slice(1)
+        .split('\r\n')
+        .slice(1, -1)
+        .map((row) => row.split(',').slice(0, 3).join(','));
+    expect(firstCells({})).toEqual([
+      '"1","2026-11-03 15:08:37","joao@example.com"',
+      '"2","2026-11-04 15:00:00","maria@example.com"',
+    ]);
+    expect(firstCells({ order: 'newest' })).toEqual([
+      '"2","2026-11-04 15:00:00","maria@example.com"',
+      '"1","2026-11-03 15:08:37","joao@example.com"',
+    ]);
+    expect(firstCells({ search: 'MARIA' })).toEqual([
+      '"2","2026-11-04 15:00:00","maria@example.com"',
+    ]);
   });
 
   it('is just the header when there are no responses', () => {
