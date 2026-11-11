@@ -132,7 +132,7 @@ describe('Forms (e2e)', () => {
       expect.objectContaining({
         title: 'Exemplo: inscrição no Banco de Talentos',
         createdBy: 'admin',
-        questionCount: 3,
+        questionCount: 4,
         responseCount: 1,
       }),
     ]);

@@ -245,7 +245,12 @@
 							{#if question.type === 'text'}
 								<span class="prewrap">{answer?.text}</span>
 							{:else if question.type === 'multiple_choice'}
-								{answer?.choices.join(', ')}
+								<!-- One per line: an option can itself contain a comma ("C, C++"). -->
+								<ul class="choices">
+									{#each answer?.choices ?? [] as choice (choice)}
+										<li>{choice}</li>
+									{/each}
+								</ul>
 							{:else}
 								{answer?.choices[0]}
 								{#if question.type === 'single_choice_justified'}
@@ -386,6 +391,10 @@
 	dd {
 		margin: 0;
 		overflow-wrap: anywhere;
+	}
+	.choices {
+		margin: 0;
+		padding-left: 1.25rem;
 	}
 	.justification {
 		display: block;

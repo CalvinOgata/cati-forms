@@ -18,6 +18,11 @@ export const SAMPLE_FORM: CreateFormDto = {
       options: ['Frontend', 'Backend', 'Design', 'Gestão'],
     },
     {
+      type: 'single_choice',
+      title: 'Em que turno você prefere as reuniões?',
+      options: ['Manhã', 'Tarde', 'Noite'],
+    },
+    {
       type: 'single_choice_justified',
       title: 'Quantas horas por semana você pode dedicar?',
       options: ['Até 5 horas', 'De 5 a 10 horas', 'Mais de 10 horas'],
@@ -27,7 +32,7 @@ export const SAMPLE_FORM: CreateFormDto = {
 
 /** An answer to the sample form; question ids are only known after it's created. */
 export function sampleResponse(form: Form): SubmitResponseDto {
-  const [why, areas, hours] = form.questions;
+  const [why, areas, shift, hours] = form.questions;
   return {
     email: 'ana@example.com',
     answers: [
@@ -37,6 +42,7 @@ export function sampleResponse(form: Form): SubmitResponseDto {
         text: 'Quero aprender trabalhando em projetos reais.',
       },
       { questionId: areas.id, choices: ['Frontend', 'Design'], text: '' },
+      { questionId: shift.id, choices: ['Tarde'], text: '' },
       {
         questionId: hours.id,
         choices: ['De 5 a 10 horas'],
