@@ -105,7 +105,7 @@ cati-forms/
 │   │   ├── schema.prisma # tabelas do banco
 │   │   └── migrations/   # SQL gerado a partir do schema (versionado)
 │   ├── prisma.config.ts  # onde estão o schema e as migrations, e o DATABASE_URL
-│   ├── src/
+│   ├── src/              # cada módulo guarda seus testes unitários em tests/
 │   │   ├── main.ts       # bootstrap (config, CORS, porta)
 │   │   ├── app.setup.ts  # prefixo /api, cookies e validação (também usado nos testes)
 │   │   ├── app.module.ts # módulo raiz
