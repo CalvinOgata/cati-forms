@@ -2,7 +2,7 @@ import {
   exportFileName,
   formatDateTime,
   sortableDateTime,
-} from './forms.export.js';
+} from '../forms.export.js';
 
 describe('export helpers', () => {
   it('shows times as in São Paulo, wherever the server runs', () => {

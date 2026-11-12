@@ -1,5 +1,5 @@
-import { printable, responsesPdf } from './forms.pdf.js';
-import type { FormDetail, FormResponse } from './forms.types.js';
+import { printable, responsesPdf } from '../forms.pdf.js';
+import type { FormDetail, FormResponse } from '../forms.types.js';
 
 const FORM: FormDetail = {
   id: 'f1',

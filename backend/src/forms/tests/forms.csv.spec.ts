@@ -1,6 +1,6 @@
-import { responsesCsv } from './forms.csv.js';
-import { ALL_RESPONSES, type ResponseView } from './forms.organize.js';
-import type { FormDetail } from './forms.types.js';
+import { responsesCsv } from '../forms.csv.js';
+import { ALL_RESPONSES, type ResponseView } from '../forms.organize.js';
+import type { FormDetail } from '../forms.types.js';
 
 const FORM: FormDetail = {
   id: 'f1',

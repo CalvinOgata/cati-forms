@@ -1,14 +1,14 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { resetDatabase } from '../../test/database.js';
-import { PrismaModule } from '../prisma/prisma.module.js';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { UsersService } from '../users/users.service.js';
-import type { CreateFormDto } from './forms.dto.js';
-import { FormsRepository } from './forms.repository.js';
-import { FormsService } from './forms.service.js';
-import type { Form } from './forms.types.js';
+import { resetDatabase } from '../../../test/database.js';
+import { PrismaModule } from '../../prisma/prisma.module.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { UsersService } from '../../users/users.service.js';
+import type { CreateFormDto } from '../forms.dto.js';
+import { FormsRepository } from '../forms.repository.js';
+import { FormsService } from '../forms.service.js';
+import type { Form } from '../forms.types.js';
 
 const NEW_FORM: CreateFormDto = {
   title: '  Pesquisa  ',

@@ -1,10 +1,10 @@
 import { ConflictException } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { resetDatabase } from '../../test/database.js';
-import { PrismaModule } from '../prisma/prisma.module.js';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { SAMPLE_USER, UsersService } from './users.service.js';
+import { resetDatabase } from '../../../test/database.js';
+import { PrismaModule } from '../../prisma/prisma.module.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { SAMPLE_USER, UsersService } from '../users.service.js';
 
 /**
  * Starts the service on the test database, like the app does on boot

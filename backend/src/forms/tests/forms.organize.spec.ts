@@ -5,8 +5,8 @@ import {
   organizeResponses,
   responseView,
   type ResponseView,
-} from './forms.organize.js';
-import type { FormDetail, FormResponse } from './forms.types.js';
+} from '../forms.organize.js';
+import type { FormDetail, FormResponse } from '../forms.types.js';
 
 const response = (
   id: string,
