@@ -19,11 +19,11 @@ import {
   type AuthenticatedRequest,
 } from './session.js';
 
-@Controller('auth')
+@Controller('auth') // utilizado em toda a parte de login, logout, signup, e na manutenção dos cookies (login automatico)
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
-  /** POST /api/auth/signup: create an account and log in. 409 if the name is taken. */
+  // POST /api/auth/signup: cria uma conta e faz login direto. 409 se o nome já está pego (igualdade das senhas é feita no frontend)
   @Post('signup')
   async signup(
     @Body() body: SignupDto,
@@ -37,19 +37,19 @@ export class AuthController {
     return toPublicUser(user);
   }
 
-  /** POST /api/auth/login: 401 if the username or password is wrong. */
+  // POST /api/auth/login: 401 se o nome ou a senha está incorreta
   @Post('login')
   @HttpCode(200)
   async login(
     @Body() body: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<PublicUser> {
-    const { token, user } = await this.auth.login(body.username, body.password);
+    const { token, user } = await this.auth.login(body.username, body.password); // loga criando um token único e o nome
     res.cookie(SESSION_COOKIE, token, sessionCookieOptions);
     return toPublicUser(user);
   }
 
-  /** POST /api/auth/logout: ends the session, if there is one. */
+  // POST /api/auth/logout: finalize a sessão e mata o cookie se há alguma
   @Post('logout')
   @HttpCode(204)
   logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): void {
@@ -57,9 +57,9 @@ export class AuthController {
     res.clearCookie(SESSION_COOKIE, sessionCookieOptions);
   }
 
-  /** GET /api/auth/me: the logged-in user, or 401. */
+  // GET /api/auth/me: reentra se o usuário fez login, 401 caso contrário
   @Get('me')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard) // usa AuthGuard para garantir que só continua se estiver logado
   me(@Req() req: AuthenticatedRequest): PublicUser {
     return toPublicUser(req.user);
   }

@@ -6,10 +6,7 @@ import { PrismaModule } from '../../prisma/prisma.module.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SAMPLE_USER, UsersService } from '../users.service.js';
 
-/**
- * Starts the service on the test database, like the app does on boot
- * (onModuleInit creates the sample user). `reset` empties the database first.
- */
+// testes unitários no banco de dados e na funcionalidade de criar novos usuários
 async function startModule(reset = false): Promise<TestingModule> {
   const module = await Test.createTestingModule({
     imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule],
@@ -58,7 +55,7 @@ describe('UsersService', () => {
     const b = await service.create('bia', 'segredo123');
 
     expect(a.passwordHash).not.toContain('segredo123');
-    // Same password, different random salt: different hashes.
+    // mesma senha, porém 'salts' diferentes, logo hashes diferentes
     expect(a.passwordHash).not.toBe(b.passwordHash);
   });
 

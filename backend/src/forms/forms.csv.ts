@@ -6,14 +6,9 @@ import {
 } from './forms.organize.js';
 import type { FormDetail } from './forms.types.js';
 
-/**
- * The responses as CSV (RF15): one row per response, ordered and filtered as
- * the view says (RN11), and one column per question. Single choice with justification takes two columns, the
- * option and the justification; checked options are joined with "; ".
- *
- * RFC 4180 (commas, CRLF, every cell quoted), with a BOM so Excel reads the
- * file as UTF-8 and keeps the accents.
- */
+
+// exportação para CSV (RF15), organizado de maneira que facilite legibilidade (RN11)
+
 export function responsesCsv(
   form: FormDetail,
   view: ResponseView = ALL_RESPONSES,

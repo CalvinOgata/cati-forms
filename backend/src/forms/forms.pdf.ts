@@ -27,11 +27,9 @@ const RULE = '#d0d4da';
 
 type Doc = PDFKit.PDFDocument;
 
-/**
- * The responses as a PDF (RF16): the form's title and details, then each
- * response, ordered and filtered as the view says (RN11), with every question
- * and its answer, and page numbers at the bottom.
- */
+
+// Uso da biblioteca PDFKit para sintetizar as respostas em um PDF (RF16), além de aplicar filtros e ordenação (RN11)
+
 export function responsesPdf(
   form: FormDetail,
   view: ResponseView = ALL_RESPONSES,

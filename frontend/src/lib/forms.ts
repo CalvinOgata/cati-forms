@@ -1,15 +1,12 @@
 import isEmail from 'validator/es/lib/isEmail';
 import { api, apiFile } from './api.js';
 
-/*
- * Forms client: types, validation and calls to /api/forms. The backend applies
- * the same rules (backend/src/forms/forms.service.ts); checking here too lets the
- * pages point at the exact field before anything is sent.
- */
+// Página frontend dos formulários
+// validação das informações ocorre tanto aqui quanto no back, para que o usuário não perca tempo
 
-export type QuestionType = 'text' | 'multiple_choice' | 'single_choice' | 'single_choice_justified';
+export type QuestionType = 'text' | 'multiple_choice' | 'single_choice' | 'single_choice_justified'; // informação repetida no backend
 
-/** Labels shown in the builder and on the form page. */
+// tipos de perguntas mostradas na página de formulário
 export const QUESTION_TYPES: Record<QuestionType, string> = {
 	text: 'Discursiva',
 	multiple_choice: 'Múltipla escolha',
@@ -17,11 +14,11 @@ export const QUESTION_TYPES: Record<QuestionType, string> = {
 	single_choice_justified: 'Escolha única com justificativa'
 };
 
-/** Exactly one option is chosen (round markers, radio buttons). */
+// uma única opção é selecionada
 export const isSingleChoice = (type: QuestionType) =>
 	type === 'single_choice' || type === 'single_choice_justified';
 
-/** The answer has written text: the answer itself, or a justification. */
+// a resposta tem texto escrito, o texto em si ou justificativa
 export const hasText = (type: QuestionType) =>
 	type === 'text' || type === 'single_choice_justified';
 
@@ -29,7 +26,7 @@ export type Question = {
 	id: string;
 	type: QuestionType;
 	title: string;
-	/** Empty for text questions. */
+	// vazio para questões de texto
 	options: string[];
 };
 
@@ -37,7 +34,7 @@ export type Form = {
 	id: string;
 	title: string;
 	description: string;
-	/** Whether respondents must give a contact e-mail (RF07). */
+	// se o respondente coloca o email ou não (RF07).
 	collectEmail: boolean;
 	questions: Question[];
 	createdBy: string;
@@ -49,11 +46,7 @@ export type FormSummary = Omit<Form, 'questions' | 'collectEmail'> & {
 	responseCount: number;
 };
 
-/**
- * One answer per question. `choices` holds the selected options (exactly one for
- * single choice, none for text); `text` holds the written answer or, for single
- * choice with justification, the justification (empty otherwise).
- */
+// uma resposta apenas por questão
 export type Answer = { questionId: string; choices: string[]; text: string };
 
 export type FormResponse = {
@@ -63,7 +56,7 @@ export type FormResponse = {
 	submittedAt: string;
 };
 
-/** A form and everything about it, for logged-in users (RN10). */
+// o formulário e tudo sobre ele, para usuários logados (RN10)
 export type FormDetail = Form & { responses: FormResponse[] };
 
 export type NewForm = Pick<Form, 'title' | 'description' | 'collectEmail'> & {
@@ -73,6 +66,7 @@ export type NewForm = Pick<Form, 'title' | 'description' | 'collectEmail'> & {
 export type NewResponse = { email: string | null; answers: Answer[] };
 
 /** Field errors, keyed by field: `title`, `questions` or a question's index. */
+//
 export type FormErrors = Record<string, string>;
 
 export function validateNewForm(form: NewForm): FormErrors {

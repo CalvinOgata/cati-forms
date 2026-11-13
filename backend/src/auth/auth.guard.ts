@@ -7,11 +7,7 @@ import {
 import { AuthService } from './auth.service.js';
 import { SESSION_COOKIE, type AuthenticatedRequest } from './session.js';
 
-/**
- * Lets a request through only with a valid session cookie, and attaches the
- * user as `req.user`. Use with `@UseGuards(AuthGuard)` on routes that require
- * login (RN03).
- */
+// faz com que uma requisição apenas passe se tiver cookie de sessão válido, usa concomitantemente em rotas que requerem login (RN03)
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private readonly auth: AuthService) {}

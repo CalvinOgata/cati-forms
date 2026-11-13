@@ -1,7 +1,7 @@
 import type { CreateFormDto, SubmitResponseDto } from './forms.dto.js';
 import type { Form } from './forms.types.js';
 
-/** Created on startup, with one question of each type. */
+// Formulário de exemplo, criado no inicio da aplicação, com uma pergunta de cada tipo
 export const SAMPLE_FORM: CreateFormDto = {
   title: 'Exemplo: inscrição no Banco de Talentos',
   description: 'Formulário de exemplo, com um tipo de pergunta de cada.',
@@ -30,7 +30,7 @@ export const SAMPLE_FORM: CreateFormDto = {
   ],
 };
 
-/** An answer to the sample form; question ids are only known after it's created. */
+// uma resposta simples ao formulário, servindo de exemplo
 export function sampleResponse(form: Form): SubmitResponseDto {
   const [why, areas, shift, hours] = form.questions;
   return {

@@ -4,15 +4,15 @@ import type { User } from '../users/users.service.js';
 /** Name of the cookie that carries the session token. */
 export const SESSION_COOKIE = 'session';
 
-// httpOnly: page scripts can't read the token. sameSite 'lax': other sites can't
-// send requests with it. No maxAge: the cookie ends when the browser closes.
+// httpOnly, scripts de página não conseguem ler o token
+// reseta quando o browser fecha
 export const sessionCookieOptions: CookieOptions = {
   httpOnly: true,
   sameSite: 'lax',
   path: '/',
 };
 
-/** A request that passed AuthGuard, which attaches the logged-in user. */
+// uma requisição que passou pelo AuthGuard, que fixa no usuário logado
 export interface AuthenticatedRequest extends Request {
   user: User;
 }

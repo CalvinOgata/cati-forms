@@ -20,31 +20,27 @@ import { responsesPdf } from './forms.pdf.js';
 import { FormsService } from './forms.service.js';
 import type { Form, FormDetail, FormSummary } from './forms.types.js';
 
-/**
- * Routes for logged-in users (RN03). There are deliberately no edit or delete
- * routes: forms can't change after they're created (RN07).
- */
+// rotas permitidas para usuários logados (RN03)
+// deliberadamente não se pode editar ou deletar formulários (RN07)
 @Controller('forms')
 @UseGuards(AuthGuard)
 export class FormsController {
   constructor(private readonly forms: FormsService) {}
 
-  /** GET /api/forms: every form, newest first. */
+  // GET /api/forms: retorna todos os formulários (tarefa passada para o service/repository), mais novos primeiro
   @Get()
   list(): Promise<FormSummary[]> {
     return this.forms.list();
   }
 
-  /** GET /api/forms/:id: the form with its responses. 404 if it doesn't exist. */
+  // GET /api/forms/:id: retorna o formulário com suas respotas, 404 se não existe
   @Get(':id')
   detail(@Param('id') id: string): Promise<FormDetail> {
     return this.forms.detail(id);
   }
 
-  /**
-   * GET /api/forms/:id/export.csv: the responses as a spreadsheet (RF15),
-   * organized as the query asks (RN11, see ExportQueryDto).
-   */
+  // GET /api/forms/:id/export.csv: exporta as respostas como uma planilha (RF15)
+  // (organizado da forma que RN11 propõe, veja a função ExportQueryDto)
   @Get(':id/export.csv')
   @Header('Cache-Control', 'no-store')
   async exportCsv(
@@ -59,7 +55,7 @@ export class FormsController {
     });
   }
 
-  /** GET /api/forms/:id/export.pdf: the same, as a document (RF16). */
+  // GET /api/forms/:id/export.pdf: a mesma proposta da função acima, mas para PDF (RF16)
   @Get(':id/export.pdf')
   @Header('Cache-Control', 'no-store')
   async exportPdf(
@@ -74,7 +70,7 @@ export class FormsController {
     });
   }
 
-  /** POST /api/forms: creates a form owned by the logged-in user. */
+  // POST /api/forms: cria um formulário feito por um usuário logado
   @Post()
   create(
     @Body() body: CreateFormDto,

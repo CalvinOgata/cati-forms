@@ -3,13 +3,13 @@ import cookieParser from 'cookie-parser';
 
 /** Settings shared by the real server (main.ts) and the e2e tests. */
 export function configureApp(app: INestApplication): void {
-  // Every route lives under /api so the frontend can proxy a single prefix.
+  // todas as rotas da aplicação vivem em /api, logo o frotend pode apenas pedir um prefixo pro proxy
   app.setGlobalPrefix('api');
 
-  // Fills req.cookies, where the session token lives.
+  // usa cookies para manter a sessão ativa
   app.use(cookieParser());
 
-  // Validates request bodies against their DTO classes; unknown fields are rejected.
+  // valida os "body" das requests para garantir que partes não abertas do site não fiquem expostas usando DTOs
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
   );

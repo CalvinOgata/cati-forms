@@ -1,5 +1,5 @@
-// What the forms API sends and receives. The frontend mirrors these types in
-// frontend/src/lib/forms.ts.
+// o que a API dos formulários recebe e envia
+// o frontend copia esses tipos em frontend/src/lib/forms.ts
 
 export const QUESTION_TYPES = [
   'text',
@@ -14,7 +14,7 @@ export interface Question {
   id: string;
   type: QuestionType;
   title: string;
-  /** Empty for text questions. */
+  // vazio para questões de texto apenas
   options: string[];
 }
 
@@ -22,7 +22,7 @@ export interface Form {
   id: string;
   title: string;
   description: string;
-  /** Whether respondents must give a contact e-mail (RF07). */
+  // o formulário deve coletar o email do respondente? (RF07)
   collectEmail: boolean;
   questions: Question[];
   createdBy: string;
@@ -39,11 +39,9 @@ export interface FormSummary {
   responseCount: number;
 }
 
-/**
- * One answer per question. `choices` holds the selected options (exactly one
- * for single choice, none for text); `text` holds the written answer or, for
- * single choice with justification, the justification (empty otherwise).
- */
+
+// uma resposta por questão, a caixa 'choices' guarda as opções selecionadas (uma ou múltiplas)
+// caixa de texto para questões com justificativa ou discursivas, vazia caso contrário
 export interface Answer {
   questionId: string;
   choices: string[];
@@ -57,7 +55,7 @@ export interface FormResponse {
   submittedAt: string;
 }
 
-/** A form and everything about it, for logged-in users (RN10). */
+// detalhes do formulário (incluindo suas respostas), para usuários logados (RN10)
 export interface FormDetail extends Form {
   responses: FormResponse[];
 }

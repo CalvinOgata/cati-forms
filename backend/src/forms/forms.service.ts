@@ -30,10 +30,7 @@ export class FormsService implements OnModuleInit {
     private readonly users: UsersService,
   ) {}
 
-  /**
-   * Creates an example form with one response when there are no forms yet, so
-   * the app isn't empty on first use. Restarts don't add it again.
-   */
+  // cria um formulário de exemplo, para que o aplicativo não fique vazio no primeiro uso
   async onModuleInit(): Promise<void> {
     if ((await this.repository.countForms()) > 0) return;
     const admin = await this.users.sampleUser();
@@ -41,7 +38,7 @@ export class FormsService implements OnModuleInit {
     await this.submit(form.id, sampleResponse(form));
   }
 
-  /** RF03–RF07. Any logged-in user can create a form (RN03). */
+  // qualquer usuário logado pode criar um formulário (RF03-RF07 e RN03)
   async create(input: CreateFormDto, authorId: string): Promise<Form> {
     const errors = formErrors(input);
     if (errors.length) throw new BadRequestException(errors);
@@ -63,31 +60,29 @@ export class FormsService implements OnModuleInit {
     });
   }
 
-  /** Every form, newest first: any user sees all of them (RN02, RN10). */
+  // lista os formulários, do mais novo ao mais velho (repository faz a ordenação) (RN02, RN10)
   list(): Promise<FormSummary[]> {
     return this.repository.listForms();
   }
 
-  /** The form with all its responses (RN10). */
+  // o formulário com todas as suas respostas (RN10)
   async detail(id: string): Promise<FormDetail> {
     const form = await this.publicForm(id);
     return { ...form, responses: await this.repository.responsesOf(id) };
   }
 
-  /** What anyone with the link sees (RF09, RN09): the questions, no responses. */
+  // aquilo que é público para todos verem, o formulário com suas questões, sem respostas
   async publicForm(id: string): Promise<Form> {
     const form = await this.repository.findForm(id);
     if (!form) throw new NotFoundException('Formulário não encontrado.');
     return form;
   }
 
-  /** Stores a response linked to its form (RF13), if every question is answered. */
+  // guarda uma resposta linkando ao seu formulário (RF13), se todas as questões foram respondidas
   async submit(
     formId: string,
     input: SubmitResponseDto,
   ): Promise<Pick<FormResponse, 'id' | 'submittedAt'>> {
-    // Forms never change (RN07), so the questions checked here are still the
-    // form's questions when the response is saved.
     const form = await this.publicForm(formId);
     const errors = responseErrors(form, input);
     if (errors.length) throw new BadRequestException(errors);
@@ -111,13 +106,16 @@ export class FormsService implements OnModuleInit {
   }
 }
 
-/** Whether the answer has written text: the answer itself, or a justification. */
+// todas as funções abaixo validam se o formulário foi montado corretamente
+
+// verificar the a resposta tem texto escrito
 function hasText(question: Question): boolean {
   return (
     question.type === 'text' || question.type === 'single_choice_justified'
   );
 }
 
+// verificar erros gerais
 function formErrors(input: CreateFormDto): string[] {
   const errors: string[] = [];
   if (!input.title.trim()) errors.push('Dê um título ao formulário.');
@@ -131,6 +129,7 @@ function formErrors(input: CreateFormDto): string[] {
   return errors;
 }
 
+// verificar erros específicos na formulação das perguntas
 function questionError(question: CreateQuestionDto): string | null {
   if (!question.title.trim()) return 'Escreva a pergunta.';
   if (question.type === 'text') return null;
@@ -144,6 +143,7 @@ function questionError(question: CreateQuestionDto): string | null {
   return null;
 }
 
+// verificar se existem erros na forma que alguém respondeu o formulário no geral
 function responseErrors(form: Form, input: SubmitResponseDto): string[] {
   const errors: string[] = [];
   if (form.collectEmail && !isEmail(input.email?.trim() ?? '')) {
@@ -161,7 +161,7 @@ function responseErrors(form: Form, input: SubmitResponseDto): string[] {
     errors.push('Cada pergunta só pode ter uma resposta.');
   }
 
-  // Every question is required (RN04).
+  // todas as perguntas são obrigatórias (RN04)
   form.questions.forEach((question, index) => {
     const answer = input.answers.find((a) => a.questionId === question.id);
     const error = answerError(question, answer);
@@ -170,6 +170,7 @@ function responseErrors(form: Form, input: SubmitResponseDto): string[] {
   return errors;
 }
 
+// verificar erros de respostas a perguntas individuais
 function answerError(
   question: Question,
   answer: AnswerDto | undefined,

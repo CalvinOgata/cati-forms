@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsString, Length, Matches } from 'class-validator';
 
-/** Body of POST /api/auth/signup: the rules for new accounts live here. */
+// Body do POST /api/auth/signup: as regras para novas contas ficam aqui
 export class SignupDto {
   @IsString({ message: 'Informe o nome de usuário.' })
   @Length(3, 32, {
@@ -12,15 +12,13 @@ export class SignupDto {
   })
   username: string;
 
+  // OBS: a senha ser igual a confirmação é verificado no frontend (signup/+page.svelte)
   @IsString({ message: 'Informe a senha.' })
   @Length(6, 128, { message: 'A senha deve ter entre 6 e 128 caracteres.' })
   password: string;
 }
 
-/**
- * Body of POST /api/auth/login. Deliberately looser than SignupDto, so changing
- * the sign-up rules later never locks out existing accounts.
- */
+// Body do POST /api/auth/login, mais simple que o de Signup para não complicar processos de migration e mudança de regras de negócio
 export class LoginDto {
   @IsString({ message: 'Informe o nome de usuário.' })
   @IsNotEmpty({ message: 'Informe o nome de usuário.' })

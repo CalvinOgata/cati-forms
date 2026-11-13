@@ -3,18 +3,18 @@ import { SubmitResponseDto } from './forms.dto.js';
 import { FormsService } from './forms.service.js';
 import type { Form, FormResponse } from './forms.types.js';
 
-/** Routes behind a form's link: no login needed (RF09, RN09). */
+// rota para responder o formulário, sem necessidade de login (RF09, RN09)
 @Controller('public/forms')
 export class PublicFormsController {
   constructor(private readonly forms: FormsService) {}
 
-  /** GET /api/public/forms/:id: the form to answer, without its responses. */
+  // GET /api/public/forms/:id: o formulário para responder, sem suas respostas
   @Get(':id')
   get(@Param('id') id: string): Promise<Form> {
     return this.forms.publicForm(id);
   }
 
-  /** POST /api/public/forms/:id/responses: 400 if any question is unanswered. */
+  // POST /api/public/forms/:id/responses: erro 400 se qualquer pergunta não estiver respondida
   @Post(':id/responses')
   submit(
     @Param('id') id: string,

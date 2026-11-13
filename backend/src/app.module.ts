@@ -5,6 +5,7 @@ import { FormsModule } from './forms/forms.module.js';
 import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
+// importa os módulos de todas as pastas para utilizar na aplicação principal
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),

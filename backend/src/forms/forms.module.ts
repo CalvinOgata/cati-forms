@@ -7,8 +7,6 @@ import { FormsService } from './forms.service.js';
 import { PublicFormsController } from './public-forms.controller.js';
 
 @Module({
-  // AuthModule provides AuthGuard for FormsController; UsersModule, the author
-  // of the sample form.
   imports: [AuthModule, UsersModule],
   controllers: [FormsController, PublicFormsController],
   providers: [FormsService, FormsRepository],

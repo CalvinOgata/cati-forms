@@ -8,9 +8,8 @@ import type {
   QuestionType,
 } from './forms.types.js';
 
-// Forms, questions, responses and answers are separate tables linked by foreign
-// keys (RF12, RF13, RNF08); see prisma/schema.prisma. This class holds the
-// queries and turns rows into what the API returns.
+// formulários, perguntas, e respostas possuem seus campo separados
+// todos linkados por chaves únicas (RF12, RF13, RNF08), veja prisma/schema.prisma
 
 export interface NewForm {
   id: string;
@@ -41,7 +40,7 @@ export interface NewResponse {
   }[];
 }
 
-/** A form with its questions in order and its author's username. */
+// formulário com suas questões em ordem e com o nome do autor
 const formWithQuestions = {
   questions: { orderBy: { position: 'asc' } },
   author: { select: { username: true } },
@@ -49,15 +48,14 @@ const formWithQuestions = {
 
 type FormRow = Prisma.FormGetPayload<{ include: typeof formWithQuestions }>;
 
-/**
- * Only inserts and reads: forms can't be edited or deleted (RN07), and
- * neither can responses.
- */
+// APENAS INSERE E LÊ
+// formulários não podem ser editados ou deletados (RN07)
+
 @Injectable()
 export class FormsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Saves a form together with its questions, all or nothing. */
+  // salva um formulário junto com suas perguntas
   async insertForm({ questions, ...form }: NewForm): Promise<Form> {
     const row = await this.prisma.form.create({
       data: { ...form, questions: { create: questions } },
@@ -66,6 +64,7 @@ export class FormsRepository {
     return toForm(row);
   }
 
+  // encontra um formulário baseado no seu id
   async findForm(id: string): Promise<Form | null> {
     const row = await this.prisma.form.findUnique({
       where: { id },
@@ -74,11 +73,12 @@ export class FormsRepository {
     return row && toForm(row);
   }
 
+  // conta quantos formulários existem no banco de dados
   countForms(): Promise<number> {
     return this.prisma.form.count();
   }
 
-  /** Every form, newest first, with how many questions and responses it has. */
+  // lista todos os formulários, dos mais novos, aos mais antigos, informa quantas perguntas e respostas tem
   async listForms(): Promise<FormSummary[]> {
     const rows = await this.prisma.form.findMany({
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -98,7 +98,7 @@ export class FormsRepository {
     }));
   }
 
-  /** Saves a response together with its answers, all or nothing. */
+  // salva a resposta junto com todas as respostas de cada pergunta
   async insertResponse({
     answers,
     ...response
@@ -109,7 +109,7 @@ export class FormsRepository {
     return { id: row.id, submittedAt: row.submittedAt.toISOString() };
   }
 
-  /** The form's responses, oldest first, each with its answers in question order. */
+  // respostas do formulário, as mais antigas primeiros, cada uma das respostas em ordem de pergunta
   async responsesOf(formId: string): Promise<FormResponse[]> {
     const rows = await this.prisma.response.findMany({
       where: { formId },
@@ -129,6 +129,7 @@ export class FormsRepository {
   }
 }
 
+// função que monta o formulário no banco
 function toForm(row: FormRow): Form {
   return {
     id: row.id,

@@ -15,9 +15,8 @@ import {
 } from './forms.organize.js';
 import { QUESTION_TYPES, type QuestionType } from './forms.types.js';
 
-// The DTOs only check the shape of the body. The form rules (required fields,
-// options, answers matching the questions) are in FormsService, where the
-// messages can say which question is wrong.
+// DTOs verificam apenas o formato do body da requisição
+// as regras dos formulários estão em FormsService
 
 export class CreateQuestionDto {
   @IsIn(QUESTION_TYPES, { message: 'Tipo de pergunta inválido.' })
@@ -27,7 +26,7 @@ export class CreateQuestionDto {
   @MaxLength(500, { message: 'A pergunta pode ter até 500 caracteres.' })
   title: string;
 
-  /** No limit on how many (RF05). Ignored for text questions. */
+  // quantidade ilimitada de opções marcaveis (RF05), ignorada para perguntas de texto
   @IsArray()
   @IsString({ each: true })
   @MaxLength(200, {
@@ -37,7 +36,7 @@ export class CreateQuestionDto {
   options: string[];
 }
 
-/** Body of POST /api/forms. */
+// Body de POST /api/forms
 export class CreateFormDto {
   @IsString()
   @MaxLength(200, { message: 'O título pode ter até 200 caracteres.' })
@@ -69,9 +68,9 @@ export class AnswerDto {
   text: string;
 }
 
-/** Body of POST /api/public/forms/:id/responses. */
+// Body de POST /api/public/forms/:id/responses
 export class SubmitResponseDto {
-  /** Required only when the form asks for it (RN08). */
+  // requerido apenas se o formulário pergunta por isso (RN08)
   @IsOptional()
   @IsString()
   @MaxLength(254)
@@ -83,10 +82,7 @@ export class SubmitResponseDto {
   answers: AnswerDto[];
 }
 
-/**
- * Query of GET /api/forms/:id/export.csv and .pdf: how to organize the
- * responses (RN11). Without it, every response, oldest first.
- */
+// query de GET /api/forms/:id/export.csv e .pdf (RN11), respostas mais antigas primeiro
 export class ExportQueryDto implements ResponseQuery {
   @IsOptional()
   @IsIn(RESPONSE_ORDERS, { message: 'Ordem inválida.' })
@@ -97,7 +93,7 @@ export class ExportQueryDto implements ResponseQuery {
   @MaxLength(200, { message: 'A busca pode ter até 200 caracteres.' })
   q?: string;
 
-  /** With `option`: only the responses that chose it in this question. */
+  // filtro para respostas que escolheram uma certa opção numa pergunta
   @IsOptional()
   @IsString()
   question?: string;

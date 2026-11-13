@@ -8,7 +8,6 @@ import { AuthService } from './auth.service.js';
   imports: [UsersModule],
   controllers: [AuthController],
   providers: [AuthService, AuthGuard],
-  // Exported so other modules (e.g. forms) can protect their routes with AuthGuard.
   exports: [AuthService, AuthGuard],
 })
 export class AuthModule {}

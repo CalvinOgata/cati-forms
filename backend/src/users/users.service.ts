@@ -6,20 +6,20 @@ import { hashPassword, verifyPassword } from './password.js';
 
 export type { User };
 
-/** What the API returns about a user: never the password or its hash. */
+// o que a API retorna a cerca do usuário, apenas o nome e data de criação, nada da senha
 export interface PublicUser {
   username: string;
   createdAt: string;
 }
 
-/** Created on startup if missing, so there is always an account to log in with. */
+// usuário de exemplo criado sempre na aplicação
 export const SAMPLE_USER = { username: 'admin', password: 'admin123' } as const;
 
 export function toPublicUser(user: User): PublicUser {
   return { username: user.username, createdAt: user.createdAt.toISOString() };
 }
 
-/** "Admin" and "admin" are the same user (RN01): the database keys users by this. */
+// usernameKey é sempre armazenado de forma minuscula, dessa forma "lucas", "LUCAS", "Lucas", ou "LuCaS", são todos o mesmo nome
 function usernameKey(username: string): string {
   return username.toLowerCase();
 }
@@ -32,35 +32,31 @@ export class UsersService implements OnModuleInit {
     await this.sampleUser();
   }
 
-  /** The sample user, created if it doesn't exist yet. */
+  // usuário de exemplo é criado
   async sampleUser(): Promise<User> {
-    const existing = await this.findByUsername(SAMPLE_USER.username);
-    if (existing) return existing;
+    const existing = await this.findByUsername(SAMPLE_USER.username); // verifica primeiro se ele existe no banco de dados (função nas linhas abaixo)
+    if (existing) return existing; // se existir, não crie
     try {
-      return await this.create(SAMPLE_USER.username, SAMPLE_USER.password);
-    } catch (error) {
-      // Someone else created it in the meantime (another startup hook, or
-      // another instance of the API starting at the same time).
+      return await this.create(SAMPLE_USER.username, SAMPLE_USER.password); // cria a usuário
+    } catch (error) { // alguém criou durante as requests
       if (!(error instanceof ConflictException)) throw error;
       return (await this.findByUsername(SAMPLE_USER.username))!;
     }
   }
 
-  /** Registers a user (RF01). Throws 409 Conflict if the username is taken. */
+  // RF01, registra um novo usuário na plataforma e retorna um erro se o nome já está em uso
   async create(username: string, password: string): Promise<User> {
-    const passwordHash = await hashPassword(password);
+    const passwordHash = await hashPassword(password); // faz hash da senha
     try {
-      return await this.prisma.user.create({
+      return await this.prisma.user.create({ // cria novo usuário no schema do Prisma
         data: {
-          id: newId(),
-          username,
-          usernameKey: usernameKey(username),
+          id: newId(), // gera número de id único pelo Prisma
+          username, // nome do usuário como ele digitou apenas para demonstração
+          usernameKey: usernameKey(username), // maneira que o banco de dados armazena, sempre de forma minuscula
           passwordHash,
         },
       });
-    } catch (error) {
-      // The unique index on username_key turns away a taken name, even when
-      // two sign-ups with the same name arrive at once.
+    } catch (error) { // como a usernameKey é única, ela irá detectar duplicatas e soltar um erro
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
@@ -71,23 +67,23 @@ export class UsersService implements OnModuleInit {
     }
   }
 
-  findByUsername(username: string): Promise<User | null> {
+  findByUsername(username: string): Promise<User | null> { // função para procurar no banco de dados por um nome de usuário (usernameKey)
     return this.prisma.user.findUnique({
       where: { usernameKey: usernameKey(username) },
     });
   }
 
-  findById(id: string): Promise<User | null> {
+  findById(id: string): Promise<User | null> { // função para procurar no banco de dados por um id (usado para tokenização)
     return this.prisma.user.findUnique({ where: { id } });
   }
 
-  /** Returns the user if the username exists and the password matches. */
+  // verifica as credenciais do usuário caso o nome e a senha estejam corretos
   async verifyCredentials(
     username: string,
     password: string,
   ): Promise<User | null> {
-    const user = await this.findByUsername(username);
-    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+    const user = await this.findByUsername(username); // verifica se o nome existe dentro do banco de dados
+    if (!user || !(await verifyPassword(password, user.passwordHash))) { // usa função para verificar o hash da senha
       return null;
     }
     return user;

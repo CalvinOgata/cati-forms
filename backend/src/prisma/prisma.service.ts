@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 
-/** The database client, shared by every module through PrismaModule. */
+// client do database do Prisma
 @Injectable()
 export class PrismaService
   extends PrismaClient
@@ -17,7 +17,7 @@ export class PrismaService
     });
   }
 
-  /** Connects on startup, so a missing database fails right away. */
+  // conecta logo na inicialização
   async onModuleInit(): Promise<void> {
     await this.$connect();
   }
